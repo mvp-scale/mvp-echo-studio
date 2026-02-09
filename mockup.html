@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVP-Echo Studio</title>
+<style>
+  :root {
+    --bg-primary: #0f1117; --bg-secondary: #1a1d27; --bg-tertiary: #242736;
+    --bg-hover: #2a2d3e; --border: #2e3248;
+    --text-primary: #e4e6f0; --text-secondary: #8b8fa8; --text-muted: #5c6078;
+    --accent: oklch(0.65 0.22 264); --accent-dim: oklch(0.45 0.18 264);
+    --accent-glow: oklch(0.65 0.22 264 / 0.15);
+    --green: #2dd4a0; --green-dim: rgba(45,212,160,0.12);
+    --orange: #f0a040; --orange-dim: rgba(240,160,64,0.12);
+    --red: #f06070; --yellow: #f0e060;
+    --speaker-0: #60a0f0; --speaker-1: #f0a060; --speaker-2: #a070e0; --speaker-3: #50d0a0;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.5; }
+
+  /* Header */
+  .header { padding:14px 32px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .header h1 { font-size:18px; font-weight:600; letter-spacing:-0.02em; }
+  .header .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--accent-glow); color:var(--accent); font-weight:500; }
+
+  /* Upload */
+  .upload-area { background:linear-gradient(135deg,#1a1040 0%,#0f1117 50%,#101820 100%); border-bottom:1px solid var(--border); padding:32px; }
+  .upload-inner { max-width:1440px; margin:0 auto; text-align:center; }
+  .upload-area h2 { font-size:18px; font-weight:600; margin-bottom:20px; }
+  .upload-dropzone { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:32px; cursor:pointer; transition:all 0.2s; max-width:540px; margin:0 auto; }
+  .upload-dropzone:hover,.upload-dropzone.dragover { border-color:var(--accent); background:var(--accent-glow); }
+  .upload-dropzone .icon { font-size:32px; margin-bottom:8px; opacity:0.5; }
+  .upload-dropzone p { color:var(--text-secondary); font-size:14px; margin-bottom:14px; }
+  .upload-dropzone .formats { color:var(--text-muted); font-size:11px; }
+  .upload-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 22px; background:var(--accent); color:white; border:none; border-radius:var(--radius); font-size:14px; font-weight:600; cursor:pointer; }
+  .upload-btn:hover { filter:brightness(1.1); }
+  .file-input { display:none; }
+  .file-selected { display:none; align-items:center; gap:12px; padding:10px 18px; background:var(--bg-tertiary); border-radius:var(--radius); max-width:440px; margin:14px auto 0; }
+  .file-selected.visible { display:flex; }
+  .file-selected .file-name { flex:1; font-size:13px; font-weight:500; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-selected .file-size { font-size:11px; color:var(--text-muted); }
+  .file-selected .remove-file { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; }
+  .file-selected .remove-file:hover { color:var(--red); }
+
+  /* Toolbar */
+  .toolbar { display:flex; align-items:center; padding:10px 32px; border-bottom:1px solid var(--border); gap:12px; max-width:1440px; margin:0 auto; }
+  .tab-group,.output-tabs { display:flex; gap:2px; background:var(--bg-secondary); border-radius:var(--radius); padding:2px; }
+  .tab { padding:5px 14px; font-size:12px; font-weight:500; color:var(--text-secondary); background:none; border:none; border-radius:6px; cursor:pointer; }
+  .tab.active { background:var(--bg-tertiary); color:var(--text-primary); }
+  .tab:hover:not(.active) { color:var(--text-primary); }
+  .run-btn { display:inline-flex; align-items:center; gap:8px; padding:7px 24px; background:var(--green); color:#0f1117; border:none; border-radius:var(--radius); font-size:13px; font-weight:700; cursor:pointer; margin-left:auto; }
+  .run-btn:hover { filter:brightness(1.1); }
+  .run-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* Main Layout */
+  .main { display:grid; grid-template-columns:380px 1fr; max-width:1440px; margin:0 auto; height:calc(100vh - 190px); }
+  .left-panel { border-right:1px solid var(--border); overflow-y:auto; }
+  .panel-content { display:none; padding:20px; }
+  .panel-content.visible { display:block; }
+
+  /* Features */
+  .feature-group { margin-bottom:24px; }
+  .feature-group-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .feature-item { padding:10px 0; }
+  .feature-row { display:flex; align-items:flex-start; gap:10px; }
+  .toggle { position:relative; width:36px; height:20px; flex-shrink:0; margin-top:1px; }
+  .toggle input { opacity:0; width:0; height:0; position:absolute; }
+  .toggle-track { position:absolute; inset:0; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:999px; cursor:pointer; transition:all 0.2s; }
+  .toggle-track::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; background:var(--text-muted); border-radius:50%; transition:all 0.2s; }
+  .toggle input:checked+.toggle-track { background:var(--accent-dim); border-color:var(--accent); }
+  .toggle input:checked+.toggle-track::after { transform:translateX(16px); background:var(--accent); }
+  .toggle input:disabled+.toggle-track { opacity:0.3; cursor:not-allowed; }
+  .feature-info { flex:1; }
+  .feature-name { font-size:13px; font-weight:600; }
+  .feature-param { font-size:10px; font-family:monospace; color:var(--accent); margin-top:1px; }
+  .feature-desc { font-size:11px; color:var(--text-muted); margin-top:3px; line-height:1.4; }
+  .feature-tag { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; font-weight:600; margin-left:4px; vertical-align:middle; }
+  .tag-on { background:var(--green-dim); color:var(--green); }
+  .tag-planned { background:var(--orange-dim); color:var(--orange); }
+  .tag-ready { background:rgba(96,160,240,0.12); color:#60a0f0; }
+  .feature-suboptions { margin-top:8px; padding-left:46px; display:none; }
+  .feature-suboptions.visible { display:block; }
+  .sub-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .sub-row label { font-size:11px; color:var(--text-secondary); white-space:nowrap; }
+  .sub-input { padding:3px 6px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-primary); font-size:11px; }
+  input[type="number"].sub-input { width:54px; }
+  .range-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .range-row label { font-size:11px; color:var(--text-secondary); white-space:nowrap; }
+  .range-row input[type="range"] { flex:1; accent-color:var(--accent); }
+  .range-val { font-size:10px; color:var(--text-primary); font-family:monospace; min-width:32px; text-align:right; }
+  .fr-rule { display:flex; align-items:center; gap:4px; margin-bottom:5px; }
+  .fr-rule input { flex:1; padding:3px 6px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-primary); font-size:11px; }
+  .fr-rule .fr-arrow { color:var(--text-muted); font-size:11px; }
+  .fr-rule .fr-rm { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; }
+  .fr-rule .fr-rm:hover { color:var(--red); }
+  .fr-add { background:none; border:1px dashed var(--border); border-radius:4px; color:var(--text-muted); font-size:11px; padding:3px 10px; cursor:pointer; width:100%; }
+  .fr-add:hover { border-color:var(--accent); color:var(--accent); }
+  .spk-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .spk-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .spk-default { font-size:10px; color:var(--text-muted); white-space:nowrap; }
+  .spk-row input { flex:1; padding:3px 6px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-primary); font-size:11px; }
+  .time-row { display:flex; gap:10px; }
+  .time-pair { display:flex; align-items:center; gap:4px; }
+  .time-pair label { font-size:11px; color:var(--text-secondary); }
+  .time-pair input { width:64px; padding:3px 6px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-primary); font-size:11px; font-family:monospace; }
+
+  /* Code panel */
+  .code-panel { padding:20px; }
+  .code-block { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:16px; font-family:monospace; font-size:12px; line-height:1.7; color:var(--text-secondary); white-space:pre-wrap; position:relative; overflow-x:auto; }
+  .code-block .cmd { color:var(--green); } .code-block .flag { color:var(--speaker-0); } .code-block .val { color:var(--speaker-1); } .code-block .url { color:var(--accent); } .code-block .comment { color:var(--text-muted); font-style:italic; } .code-block .str { color:#50d0a0; }
+  .code-label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+  .code-section { margin-bottom:20px; }
+  .copy-btn { position:absolute; top:8px; right:8px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-muted); font-size:11px; padding:3px 8px; cursor:pointer; }
+  .copy-btn:hover { color:var(--text-primary); }
+
+  /* Right panel */
+  .right-panel { overflow-y:auto; display:flex; flex-direction:column; }
+  .right-content { flex:1; overflow-y:auto; padding:20px; }
+  .output-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted); text-align:center; gap:14px; }
+  .output-empty .empty-icon { font-size:40px; opacity:0.25; }
+  .output-empty p { font-size:14px; max-width:280px; }
+  .loading-overlay { display:none; flex-direction:column; align-items:center; justify-content:center; height:60%; gap:16px; }
+  .loading-overlay.visible { display:flex; }
+  .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── Audio Player ── */
+  .audio-player { display:none; padding:10px 20px; background:var(--bg-secondary); border-bottom:1px solid var(--border); align-items:center; gap:12px; }
+  .audio-player.visible { display:flex; }
+  .play-pause { width:32px; height:32px; border-radius:50%; background:var(--accent); border:none; color:white; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .play-pause:hover { filter:brightness(1.15); }
+  .player-time { font-family:monospace; font-size:11px; color:var(--text-muted); white-space:nowrap; min-width:90px; }
+  .progress-wrap { flex:1; height:6px; background:var(--bg-tertiary); border-radius:3px; cursor:pointer; position:relative; }
+  .progress-fill { height:100%; background:var(--accent); border-radius:3px; width:0%; transition:width 0.1s; }
+  .progress-wrap:hover .progress-fill { background:var(--green); }
+
+  /* ── Speaker Timeline ── */
+  .timeline-bar { display:none; padding:8px 20px; background:var(--bg-primary); border-bottom:1px solid var(--border); }
+  .timeline-bar.visible { display:block; }
+  .timeline-label { font-size:10px; color:var(--text-muted); margin-bottom:4px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+  .timeline-track { height:20px; background:var(--bg-tertiary); border-radius:4px; position:relative; overflow:hidden; cursor:pointer; }
+  .tl-block { position:absolute; top:0; height:100%; opacity:0.7; transition:opacity 0.1s; border-radius:2px; min-width:2px; }
+  .tl-block:hover { opacity:1; }
+  .tl-block[data-s="0"] { background:var(--speaker-0); }
+  .tl-block[data-s="1"] { background:var(--speaker-1); }
+  .tl-block[data-s="2"] { background:var(--speaker-2); }
+  .tl-block[data-s="3"] { background:var(--speaker-3); }
+  .tl-playhead { position:absolute; top:0; width:2px; height:100%; background:white; z-index:2; pointer-events:none; }
+
+  /* ── Speaker Stats ── */
+  .stats-bar { display:none; padding:12px 20px; background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+  .stats-bar.visible { display:flex; gap:20px; flex-wrap:wrap; }
+  .stat-card { flex:1; min-width:120px; }
+  .stat-head { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+  .stat-dot { width:8px; height:8px; border-radius:50%; }
+  .stat-name { font-size:12px; font-weight:600; }
+  .stat-details { font-size:11px; color:var(--text-muted); line-height:1.6; }
+  .stat-bar-bg { height:4px; background:var(--bg-tertiary); border-radius:2px; margin-top:4px; }
+  .stat-bar-fill { height:100%; border-radius:2px; }
+
+  /* ── Search Bar ── */
+  .search-bar { display:flex; align-items:center; gap:8px; padding:8px 20px; background:var(--bg-primary); border-bottom:1px solid var(--border); display:none; }
+  .search-bar.visible { display:flex; }
+  .search-input { flex:1; padding:5px 10px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-primary); font-size:12px; outline:none; }
+  .search-input:focus { border-color:var(--accent); }
+  .search-input::placeholder { color:var(--text-muted); }
+  .search-count { font-size:11px; color:var(--text-muted); font-family:monospace; white-space:nowrap; min-width:50px; }
+  .search-nav { display:flex; gap:2px; }
+  .search-nav button { background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-muted); font-size:12px; padding:2px 8px; cursor:pointer; }
+  .search-nav button:hover { color:var(--text-primary); border-color:var(--text-muted); }
+  .search-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; padding:0 4px; }
+  .search-close:hover { color:var(--red); }
+
+  /* Search highlights */
+  mark.hl { background:rgba(240,224,96,0.25); color:var(--text-primary); border-radius:2px; padding:0 1px; }
+  mark.hl.active { background:rgba(240,224,96,0.6); outline:1px solid var(--yellow); }
+
+  /* ── View Bar ── */
+  .view-bar { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .view-toggle { display:flex; gap:2px; background:var(--bg-secondary); border-radius:var(--radius); padding:2px; }
+  .view-btn { padding:4px 12px; font-size:11px; font-weight:500; color:var(--text-secondary); background:none; border:none; border-radius:5px; cursor:pointer; }
+  .view-btn.active { background:var(--bg-tertiary); color:var(--text-primary); }
+  .view-btn:hover:not(.active) { color:var(--text-primary); }
+  .view-spacer { flex:1; }
+  .icon-btn { background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; color:var(--text-muted); font-size:11px; padding:4px 10px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .icon-btn:hover { color:var(--text-primary); border-color:var(--text-muted); }
+  .icon-btn.on { color:var(--accent); border-color:var(--accent); background:var(--accent-glow); }
+
+  /* Transcript */
+  .output-container { display:none; }
+  .output-container.visible { display:block; }
+  .line-view .seg { display:grid; grid-template-columns:100px 80px 1fr; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; align-items:baseline; cursor:pointer; }
+  .line-view .seg:hover { background:var(--bg-secondary); margin:0 -6px; padding:6px; border-radius:4px; }
+  .line-view .seg.playing { background:var(--accent-glow); margin:0 -6px; padding:6px; border-radius:4px; }
+  .seg .ts { font-family:monospace; font-size:10px; color:var(--text-muted); white-space:nowrap; }
+  .seg .spk { font-size:11px; font-weight:600; white-space:nowrap; }
+  .seg .txt { color:var(--text-primary); position:relative; }
+  .line-view.no-diarize .seg { grid-template-columns:100px 1fr; }
+  .wt { cursor:default; border-radius:2px; padding:0 1px; position:relative; }
+  .wt:hover { background:var(--accent-glow); }
+  .wt-tip { display:none; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:var(--bg-tertiary); border:1px solid var(--border); padding:2px 6px; border-radius:3px; font-size:9px; color:var(--text-muted); font-family:monospace; white-space:nowrap; pointer-events:none; margin-bottom:4px; z-index:10; }
+  .wt:hover .wt-tip { display:block; }
+  .para-block { margin-bottom:16px; padding:14px; background:var(--bg-secondary); border-radius:var(--radius); border-left:3px solid var(--speaker-0); cursor:pointer; transition:background 0.1s; }
+  .para-block:hover { background:var(--bg-hover); }
+  .para-block.playing { background:var(--accent-glow); }
+  .para-block[data-s="1"] { border-left-color:var(--speaker-1); }
+  .para-block[data-s="2"] { border-left-color:var(--speaker-2); }
+  .para-block[data-s="3"] { border-left-color:var(--speaker-3); }
+  .para-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .para-spk { font-size:12px; font-weight:700; }
+  .para-ts { font-family:monospace; font-size:10px; color:var(--text-muted); }
+  .para-txt { font-size:13px; line-height:1.7; }
+  .para-block.no-diarize { border-left-color:var(--text-muted); }
+  .para-block.no-diarize .para-spk { display:none; }
+
+  /* Editable mode */
+  .para-txt[contenteditable="true"] { outline:none; border:1px dashed var(--accent); border-radius:4px; padding:4px 6px; margin:-4px -6px; background:rgba(96,160,240,0.04); }
+  .seg .txt[contenteditable="true"] { outline:none; border-bottom:1px dashed var(--accent); background:rgba(96,160,240,0.04); }
+
+  /* Raw output */
+  .raw-output { font-family:monospace; font-size:12px; line-height:1.6; color:var(--text-secondary); white-space:pre-wrap; background:var(--bg-secondary); padding:16px; border-radius:var(--radius); overflow-x:auto; }
+  .raw-output .key { color:#60a0f0; } .raw-output .str { color:#50d0a0; } .raw-output .num { color:#f0a060; } .raw-output .bool { color:#e070c0; }
+  .raw-output .srt-idx { color:var(--accent); font-weight:700; } .raw-output .srt-time { color:var(--text-muted); } .raw-output .srt-spk { color:var(--speaker-0); font-weight:600; }
+  .s0 { color:var(--speaker-0); } .s1 { color:var(--speaker-1); } .s2 { color:var(--speaker-2); } .s3 { color:var(--speaker-3); }
+
+  @media (max-width:900px) { .main { grid-template-columns:1fr; height:auto; } .left-panel { max-height:50vh; } }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="header"><h1>MVP-Echo Studio</h1><span class="badge">Parakeet TDT 0.6B + Pyannote 3.1</span></div>
+
+<div class="upload-area"><div class="upload-inner"><h2>Audio Input</h2>
+  <div class="upload-dropzone" id="dropzone"><div class="icon">&#127908;</div><p>Drag and drop your audio file here</p>
+    <button class="upload-btn" id="uploadBtn"><span>&#8679;</span> Upload Audio File</button>
+    <div class="formats">MP3, WAV, FLAC, M4A, OGG, WebM</div>
+    <input type="file" class="file-input" id="fileInput" accept="audio/*">
+  </div>
+  <div class="file-selected" id="fileSelected"><span>&#127925;</span><span class="file-name" id="fileName"></span><span class="file-size" id="fileSize"></span><button class="remove-file" id="removeFile">&times;</button></div>
+</div></div>
+
+<div class="toolbar">
+  <div class="tab-group"><button class="tab active" data-left="features">Features</button><button class="tab" data-left="code">Code Sample</button></div>
+  <button class="run-btn" id="runBtn" disabled><span>&#9654;</span> Run</button>
+  <div class="output-tabs" id="outputTabs">
+    <button class="tab active" data-out="transcript">Transcript</button>
+    <button class="tab" data-out="json">JSON</button><button class="tab" data-out="srt">SRT</button>
+    <button class="tab" data-out="vtt">VTT</button><button class="tab" data-out="txt">TXT</button>
+  </div>
+</div>
+
+<div class="main">
+<!-- LEFT PANEL -->
+<div class="left-panel">
+<div class="panel-content visible" id="panelFeatures">
+  <div class="feature-group"><div class="feature-group-title">Audio Pre-Processing</div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-trim"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Trim Audio <span class="feature-tag tag-on">Available</span></div><div class="feature-param">trim=false</div><div class="feature-desc">Transcribe only a specific time range.</div></div></div><div class="feature-suboptions" id="trim-opts"><div class="time-row"><div class="time-pair"><label>Start:</label><input type="text" value="0:00" id="trim-start"></div><div class="time-pair"><label>End:</label><input type="text" value="" placeholder="End" id="trim-end"></div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-multichannel"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Channel per Speaker <span class="feature-tag tag-on">Available</span></div><div class="feature-param">multichannel=false</div><div class="feature-desc">Stereo: assign speakers by channel.</div></div></div></div>
+  </div>
+  <div class="feature-group"><div class="feature-group-title">Transcription</div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-diarize" checked><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Diarization <span class="feature-tag tag-on">Available</span></div><div class="feature-param">diarize=true</div><div class="feature-desc">Identify and label speakers.</div></div></div><div class="feature-suboptions visible" id="diarize-opts"><div class="sub-row"><label>Min speakers:</label><input type="number" class="sub-input" placeholder="Auto" min="1" max="20" id="min-spk"></div><div class="sub-row"><label>Max speakers:</label><input type="number" class="sub-input" placeholder="Auto" min="1" max="20" id="max-spk"></div><div class="sub-row"><label>Exact count:</label><input type="number" class="sub-input" placeholder="Auto" min="1" max="20" id="num-spk"></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-wordts"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Word-Level Timestamps <span class="feature-tag tag-ready">Ready</span></div><div class="feature-param">word_timestamps=false</div><div class="feature-desc">Per-word times. Hover words in output.</div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-punct" checked><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Punctuation <span class="feature-tag tag-on">Available</span></div><div class="feature-param">punctuate=true</div><div class="feature-desc">Periods, commas, question marks.</div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-smart" checked><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Smart Format <span class="feature-tag tag-on">Available</span></div><div class="feature-param">smart_format=true</div><div class="feature-desc">Format numbers, dates, currency.</div></div></div></div>
+  </div>
+  <div class="feature-group"><div class="feature-group-title">Post-Processing</div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-para" checked><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Detect Paragraphs <span class="feature-tag tag-on">Available</span></div><div class="feature-param">detect_paragraphs=true</div><div class="feature-desc">Group segments by speaker turn.</div></div></div><div class="feature-suboptions visible" id="para-opts"><div class="range-row"><label>Silence gap:</label><input type="range" min="0.2" max="5" step="0.1" value="0.8" id="silence-thr"><span class="range-val" id="silence-val">0.8s</span></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-fillers"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Remove Filler Words <span class="feature-tag tag-on">Available</span></div><div class="feature-param">remove_fillers=false</div><div class="feature-desc">Strip "uh", "um", "you know".</div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-profanity"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Profanity Filter <span class="feature-tag tag-on">Available</span></div><div class="feature-param">filter_profanity=false</div><div class="feature-desc">Censor with asterisks.</div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-confidence"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Confidence Filter <span class="feature-tag tag-ready">Ready</span></div><div class="feature-param">min_confidence=0</div><div class="feature-desc">Filter low-confidence segments.</div></div></div><div class="feature-suboptions" id="conf-opts"><div class="range-row"><label>Threshold:</label><input type="range" min="0" max="1" step="0.05" value="0.5" id="conf-thr"><span class="range-val" id="conf-val">0.50</span></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-fr"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Find &amp; Replace <span class="feature-tag tag-on">Available</span></div><div class="feature-param">find_replace=false</div><div class="feature-desc">Custom text replacements.</div></div></div><div class="feature-suboptions" id="fr-opts"><div id="frRules"><div class="fr-rule"><input type="text" placeholder="Find..." class="fr-find" value="gonna"><span class="fr-arrow">&rarr;</span><input type="text" placeholder="Replace..." class="fr-rep" value="going to"><button class="fr-rm">&times;</button></div></div><button class="fr-add" id="frAdd">+ Add rule</button></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" id="feat-labels"><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Custom Speaker Labels <span class="feature-tag tag-on">Available</span></div><div class="feature-param">custom_labels=false</div><div class="feature-desc">Rename speakers.</div></div></div><div class="feature-suboptions" id="label-opts"><div class="spk-row"><span class="spk-dot" style="background:var(--speaker-0)"></span><span class="spk-default">0&rarr;</span><input type="text" placeholder="e.g. Alice" data-s="0" class="spk-inp"></div><div class="spk-row"><span class="spk-dot" style="background:var(--speaker-1)"></span><span class="spk-default">1&rarr;</span><input type="text" placeholder="e.g. Bob" data-s="1" class="spk-inp"></div><div class="spk-row"><span class="spk-dot" style="background:var(--speaker-2)"></span><span class="spk-default">2&rarr;</span><input type="text" placeholder="e.g. Carol" data-s="2" class="spk-inp"></div></div></div>
+  </div>
+  <div class="feature-group"><div class="feature-group-title">Audio Intelligence</div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" disabled><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Entity Detection <span class="feature-tag tag-planned">Phase 2</span></div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" disabled><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Sentiment <span class="feature-tag tag-planned">Phase 2</span></div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" disabled><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">PII Redaction <span class="feature-tag tag-planned">Phase 2</span></div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" disabled><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Summarization <span class="feature-tag tag-planned">Phase 3</span></div></div></div></div>
+    <div class="feature-item"><div class="feature-row"><label class="toggle"><input type="checkbox" disabled><span class="toggle-track"></span></label><div class="feature-info"><div class="feature-name">Topic Detection <span class="feature-tag tag-planned">Phase 3</span></div></div></div></div>
+  </div>
+</div>
+<div class="panel-content" id="panelCode"><div class="code-panel"><div class="code-section"><div class="code-label">cURL Request</div><div class="code-block" id="curlBlock"></div></div><div class="code-section"><div class="code-label">Python</div><div class="code-block" id="pythonBlock"></div></div></div></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <!-- Audio Player -->
+  <div class="audio-player" id="audioPlayer">
+    <button class="play-pause" id="playPause">&#9654;</button>
+    <span class="player-time"><span id="curTime">0:00</span> / <span id="totalTime">1:31</span></span>
+    <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+    <audio id="audioEl"></audio>
+  </div>
+
+  <!-- Speaker Timeline -->
+  <div class="timeline-bar" id="timelineBar">
+    <div class="timeline-label">Speaker Timeline</div>
+    <div class="timeline-track" id="timelineTrack"><div class="tl-playhead" id="tlPlayhead" style="left:0%"></div></div>
+  </div>
+
+  <!-- Speaker Stats -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Search -->
+  <div class="search-bar" id="searchBar">
+    <input class="search-input" id="searchInput" placeholder="Search transcript..." type="text">
+    <span class="search-count" id="searchCount"></span>
+    <div class="search-nav"><button id="searchPrev">&#8593;</button><button id="searchNext">&#8595;</button></div>
+    <button class="search-close" id="searchClose">&times;</button>
+  </div>
+
+  <div class="right-content">
+    <div class="output-empty" id="outputEmpty"><div class="empty-icon">&#128196;</div><p>Upload audio and click <strong>Run</strong> to see output here.</p></div>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:var(--text-secondary);font-size:13px;">Transcribing with Parakeet TDT 0.6B...</div></div>
+
+    <div class="output-container" id="outTranscript">
+      <div class="view-bar">
+        <div class="view-toggle"><button class="view-btn" data-v="line">Line by Line</button><button class="view-btn active" data-v="para">Paragraph</button></div>
+        <div class="view-spacer"></div>
+        <button class="icon-btn" id="searchToggle" title="Search (Ctrl+F)">&#128269; Search</button>
+        <button class="icon-btn" id="editToggle" title="Edit transcript">&#9998; Edit</button>
+      </div>
+      <div id="lineView" class="line-view" style="display:none;"></div>
+      <div id="paraView"></div>
+    </div>
+
+    <div class="output-container" id="outJson"><div class="raw-output" id="jsonView"></div></div>
+    <div class="output-container" id="outSrt"><div class="raw-output" id="srtView"></div></div>
+    <div class="output-container" id="outVtt"><div class="raw-output" id="vttView"></div></div>
+    <div class="output-container" id="outTxt"><div class="raw-output" id="txtView"></div></div>
+  </div>
+</div>
+</div>
+
+<script>
+const RAW=[
+  {s:0,e:3.2,spk:0,punct:"Good morning, everyone. Thank you for joining the product review meeting today.",nopunct:"good morning everyone thank you for joining the product review meeting today",words:[{w:"Good",s:0,e:.3},{w:"morning,",s:.32,e:.7},{w:"everyone.",s:.75,e:1.2},{w:"Thank",s:1.4,e:1.6},{w:"you",s:1.62,e:1.75},{w:"for",s:1.78,e:1.9},{w:"joining",s:1.92,e:2.3},{w:"the",s:2.32,e:2.4},{w:"product",s:2.42,e:2.7},{w:"review",s:2.72,e:2.95},{w:"meeting",s:2.98,e:3.1},{w:"today.",s:3.12,e:3.2}]},
+  {s:3.4,e:6.8,spk:0,punct:"I wanted to start by going over the Q4 metrics and then discuss our roadmap for next quarter.",nopunct:"i wanted to start by going over the q four metrics and then discuss our roadmap for next quarter",words:[{w:"I",s:3.4,e:3.45},{w:"wanted",s:3.48,e:3.7},{w:"to",s:3.72,e:3.8},{w:"start",s:3.82,e:4.1},{w:"by",s:4.12,e:4.2},{w:"going",s:4.22,e:4.5},{w:"over",s:4.52,e:4.7},{w:"the",s:4.72,e:4.8},{w:"Q4",s:4.82,e:5.1},{w:"metrics",s:5.12,e:5.5},{w:"and",s:5.52,e:5.6},{w:"then",s:5.62,e:5.8},{w:"discuss",s:5.82,e:6.1},{w:"our",s:6.12,e:6.25},{w:"roadmap",s:6.28,e:6.55},{w:"for",s:6.58,e:6.65},{w:"next",s:6.68,e:6.78},{w:"quarter.",s:6.78,e:6.8}]},
+  {s:7.6,e:10.1,spk:1,punct:"Sounds good. Before we dive in, can we also address the customer feedback from last week?",nopunct:"sounds good before we dive in can we also address the customer feedback from last week",words:[]},
+  {s:10.3,e:13.5,spk:1,punct:"There were some recurring themes around the onboarding flow that I think we need to prioritize.",nopunct:"there were some recurring themes around the onboarding flow that i think we need to prioritize",words:[]},
+  {s:14.2,e:17.4,spk:0,punct:"Absolutely. Let's add that to the agenda. So starting with the numbers.",nopunct:"absolutely lets add that to the agenda so starting with the numbers",words:[]},
+  {s:17.6,e:21.8,spk:0,punct:"We saw a 23% increase in daily active users this quarter, which puts us ahead of target by about 8 points.",nopunct:"we saw a twenty three percent increase in daily active users this quarter which puts us ahead of target by about eight points",words:[]},
+  {s:22,e:25.5,spk:0,punct:"Retention at day 30 held steady at 41%, which is actually better than I expected given the pricing changes.",nopunct:"retention at day thirty held steady at forty one percent which is actually better than i expected given the pricing changes",words:[]},
+  {s:26.2,e:28.9,spk:1,punct:"That's great on the DAU growth. What's driving it? Is it organic or paid?",nopunct:"thats great on the dau growth whats driving it is it organic or paid",words:[]},
+  {s:29.1,e:33.4,spk:0,punct:"Mostly organic. The blog content strategy has been paying off. We're seeing about 60% of new signups come through search.",nopunct:"mostly organic the blog content strategy has been paying off were seeing about sixty percent of new signups come through search",words:[]},
+  {s:33.8,e:37.2,spk:0,punct:"The remaining 40% is split between referrals and the partnership integrations we launched in October.",nopunct:"the remaining forty percent is split between referrals and the partnership integrations we launched in october",words:[]},
+  {s:38,e:41.5,spk:2,punct:"That lines up with what I've been hearing from the support team. New users are mentioning blog articles.",nopunct:"that lines up with what ive been hearing from the support team new users are mentioning blog articles",words:[]},
+  {s:41.8,e:45.6,spk:2,punct:"But I will say the onboarding completion rate dropped to 67% from 74% last quarter.",nopunct:"but i will say the onboarding completion rate dropped to sixty seven percent from seventy four percent last quarter",words:[]},
+  {s:46,e:49.2,spk:1,punct:"That's the gap I was worried about. We're bringing people in the door but losing them during setup.",nopunct:"thats the gap i was worried about were bringing people in the door but losing them during setup",words:[]},
+  {s:49.5,e:53.8,spk:1,punct:"I've been looking at the session recordings and the biggest drop-off point is the workspace configuration step.",nopunct:"ive been looking at the session recordings and the biggest drop off point is the workspace configuration step",words:[]},
+  {s:54.2,e:57,spk:1,punct:"We need to simplify that. Can we do a default workspace that users can customize later?",nopunct:"we need to simplify that can we do a default workspace that users can customize later",words:[]},
+  {s:57.6,e:60.8,spk:0,punct:"That's definitely doable. The engineering team has actually prototyped a guided setup wizard.",nopunct:"thats definitely doable the engineering team has actually prototyped a guided setup wizard",words:[]},
+  {s:61,e:65.4,spk:0,punct:"It walks users through 3 simple choices and auto-configures the rest. We could ship it by mid-January.",nopunct:"it walks users through three simple choices and auto configures the rest we could ship it by mid january",words:[]},
+  {s:66,e:69.2,spk:2,punct:"I'd advocate for making that the top priority. Every point we recover on onboarding flows directly to retention.",nopunct:"id advocate for making that the top priority every point we recover on onboarding flows directly to retention",words:[]},
+  {s:69.6,e:72.8,spk:1,punct:"Agreed. Let's put the wizard at the top of the Q1 sprint. What else is on the roadmap?",nopunct:"agreed lets put the wizard at the top of the q one sprint what else is on the roadmap",words:[]},
+  {s:73.4,e:77.5,spk:0,punct:"The other 2 big items are the API v2 launch and the mobile companion app beta.",nopunct:"the other two big items are the api v two launch and the mobile companion app beta",words:[]},
+  {s:77.8,e:82.1,spk:0,punct:"API v2 is about 80% complete. We're mostly working on documentation and migration guides at this point.",nopunct:"api v two is about eighty percent complete were mostly working on documentation and migration guides at this point",words:[]},
+  {s:82.5,e:86,spk:0,punct:"The mobile app is earlier stage. We have the core functionality working but need another design pass.",nopunct:"the mobile app is earlier stage we have the core functionality working but need another design pass",words:[]},
+  {s:86.4,e:89.5,spk:1,punct:"OK, sounds like a solid plan. Let's reconvene next week with the updated sprint priorities.",nopunct:"ok sounds like a solid plan lets reconvene next week with the updated sprint priorities",words:[]},
+  {s:89.8,e:91.2,spk:1,punct:"Thanks, everyone.",nopunct:"thanks everyone",words:[]},
+];
+
+const spkNames={0:'',1:'',2:'',3:''}, spkColors=['var(--speaker-0)','var(--speaker-1)','var(--speaker-2)','var(--speaker-3)'];
+let shown=false, currentOut='transcript', currentView='para', editMode=false, searchTerm='', searchIdx=0;
+const $=id=>document.getElementById(id), ck=id=>$(id).checked;
+const ft=s=>{const m=Math.floor(s/60),sec=Math.floor(s%60),ms=Math.round((s%1)*100);return`${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`};
+const ftSrt=s=>{const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60),ms=Math.round((s%1)*1000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')},${String(ms).padStart(3,'0')}`};
+const ftVtt=s=>{const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60),ms=Math.round((s%1)*1000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`};
+const ftShort=s=>{const m=Math.floor(s/60),sec=Math.floor(s%60);return`${m}:${String(sec).padStart(2,'0')}`};
+const spkLabel=i=>spkNames[i]||`Speaker ${i}`;
+const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const dur=RAW[RAW.length-1].e;
+
+function getSegments(){
+  const usePunct=ck('feat-punct'),useSmart=ck('feat-smart');
+  let segs=RAW.map(r=>({s:r.s,e:r.e,spk:r.spk,words:r.words||[],text:(usePunct&&useSmart)?r.punct:(usePunct?r.punct:r.nopunct)}));
+  if(usePunct&&!useSmart) segs.forEach(s=>{s.text=s.text.replace(/\b23%/g,'twenty three percent').replace(/\b41%/g,'forty one percent').replace(/\b60%/g,'sixty percent').replace(/\b40%/g,'forty percent').replace(/\b67%/g,'sixty seven percent').replace(/\b74%/g,'seventy four percent').replace(/\b80%/g,'eighty percent').replace(/\b8 points/g,'eight points').replace(/\bday 30\b/g,'day thirty').replace(/\b3 simple/g,'three simple').replace(/\b2 big/g,'two big').replace(/\bQ4\b/g,'Q four').replace(/\bQ1\b/g,'Q one').replace(/\bv2\b/g,'v two').replace(/\bAPI v2/g,'API v two')});
+  if(ck('feat-fillers')){const re=/\b(uh|um|like|you know|i mean|sort of|kind of)\b/gi;segs.forEach(s=>{s.text=s.text.replace(re,'').replace(/\s{2,}/g,' ').trim()});}
+  if(ck('feat-fr')){const rules=[];document.querySelectorAll('#frRules .fr-rule').forEach(row=>{const f=row.querySelector('.fr-find').value.trim(),r=row.querySelector('.fr-rep').value;if(f)rules.push({f,r})});segs.forEach(s=>{rules.forEach(r=>{s.text=s.text.replace(new RegExp('\\b'+r.f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'),r.r)})});}
+  return segs;
+}
+function groupParas(segs){const p=[];let c=null;const d=ck('feat-diarize');for(const s of segs){if(!c||(d&&c.spk!==s.spk)){if(c)p.push(c);c={spk:s.spk,s:s.s,e:s.e,texts:[s.text]}}else{c.e=s.e;c.texts.push(s.text)}}if(c)p.push(c);return p}
+
+function hlText(txt){
+  if(!searchTerm) return esc(txt);
+  const e=esc(txt), re=new RegExp('('+searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return e.replace(re,'<mark class="hl">$1</mark>');
+}
+
+// ── RENDER ──
+function renderAll(){
+  if(!shown) return;
+  const segs=getSegments(), diarize=ck('feat-diarize'), wordTs=ck('feat-wordts'), paras=groupParas(segs);
+
+  // Line view
+  const lv=$('lineView');
+  lv.className='line-view'+(diarize?'':' no-diarize');
+  lv.innerHTML=segs.map((s,i)=>{
+    let txt=hlText(s.text);
+    if(wordTs&&s.words.length) txt=s.words.map(w=>`<span class="wt">${esc(w.w)}<span class="wt-tip">${ft(w.s)}</span></span>`).join(' ');
+    return`<div class="seg" data-i="${i}" data-start="${s.s}"><span class="ts">${ft(s.s)} &rarr; ${ft(s.e)}</span>${diarize?`<span class="spk s${s.spk}">${spkLabel(s.spk)}</span>`:''}<span class="txt"${editMode?' contenteditable="true"':''}>${txt}</span></div>`;
+  }).join('');
+
+  // Para view
+  $('paraView').innerHTML=paras.map((p,i)=>{
+    const cls=diarize?'':' no-diarize';
+    return`<div class="para-block${cls}" data-s="${p.spk}" data-start="${p.s}" data-pi="${i}"><div class="para-head">${diarize?`<span class="para-spk s${p.spk}">${spkLabel(p.spk)}</span>`:''}<span class="para-ts">${ft(p.s)} &rarr; ${ft(p.e)}</span></div><div class="para-txt"${editMode?' contenteditable="true"':''}>${hlText(p.texts.join(' '))}</div></div>`;
+  }).join('');
+
+  // SRT/VTT/TXT/JSON
+  $('srtView').innerHTML=segs.map((s,i)=>{const spk=diarize?`<span class="srt-spk">[${spkLabel(s.spk)}]</span> `:'';return`<span class="srt-idx">${i+1}</span>\n<span class="srt-time">${ftSrt(s.s)} --> ${ftSrt(s.e)}</span>\n${spk}${esc(s.text)}\n`}).join('\n');
+  $('vttView').innerHTML=`WEBVTT\n\n`+segs.map(s=>{const spk=diarize?`&lt;v ${spkLabel(s.spk)}&gt;`:'';return`<span class="srt-time">${ftVtt(s.s)} --> ${ftVtt(s.e)}</span>\n${spk}${esc(s.text)}\n`}).join('\n');
+  $('txtView').textContent=paras.map(p=>{const label=diarize?`${spkLabel(p.spk)} [${ft(p.s)} - ${ft(p.e)}]:\n`:`[${ft(p.s)} - ${ft(p.e)}]\n`;return label+p.texts.join(' ')}).join('\n\n');
+  const json={text:segs.map(s=>s.text).join(' '),segments:segs.map(s=>({start:s.s,end:s.e,text:s.text,...(diarize?{speaker:`SPEAKER_${s.spk}`}:{})})),...(ck('feat-para')?{paragraphs:paras.map(p=>({...(diarize?{speaker:`SPEAKER_${p.spk}`}:{}),start:p.s,end:p.e,text:p.texts.join(' ')}))}:{}),language:"en",duration:dur,model:"nvidia/parakeet-tdt-0.6b-v2"};
+  const raw=JSON.stringify(json,null,2);
+  $('jsonView').innerHTML=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"([^"]+)":/g,'<span class="key">"$1"</span>:').replace(/: "([^"]*?)"/g,': <span class="str">"$1"</span>').replace(/: (\d+\.?\d*)/g,': <span class="num">$1</span>').replace(/: (true|false)/g,': <span class="bool">$1</span>');
+
+  renderTimeline(segs); renderStats(segs,diarize); renderCode(); updateSearchCount();
+  // Click-to-seek on segments
+  document.querySelectorAll('.seg[data-start],.para-block[data-start]').forEach(el=>{
+    el.addEventListener('click',e=>{if(editMode&&e.target.closest('[contenteditable]'))return;seekAudio(parseFloat(el.dataset.start))});
+  });
+}
+
+function renderTimeline(segs){
+  const track=$('timelineTrack');
+  track.innerHTML='<div class="tl-playhead" id="tlPlayhead" style="left:0%"></div>';
+  segs.forEach(s=>{const left=(s.s/dur)*100,width=((s.e-s.s)/dur)*100;
+    const bl=document.createElement('div');bl.className='tl-block';bl.dataset.s=s.spk;
+    bl.style.left=left+'%';bl.style.width=Math.max(width,0.3)+'%';bl.title=`${spkLabel(s.spk)} ${ft(s.s)}-${ft(s.e)}`;
+    bl.addEventListener('click',()=>seekAudio(s.s));track.appendChild(bl);
+  });
+}
+
+function renderStats(segs,diarize){
+  const bar=$('statsBar');
+  if(!diarize){bar.classList.remove('visible');return;}
+  bar.classList.add('visible');
+  const stats={};
+  segs.forEach(s=>{if(!stats[s.spk])stats[s.spk]={time:0,words:0};stats[s.spk].time+=s.e-s.s;stats[s.spk].words+=s.text.split(/\s+/).length;});
+  const totalTime=Object.values(stats).reduce((a,b)=>a+b.time,0);
+  bar.innerHTML=Object.keys(stats).sort().map(k=>{
+    const pct=(stats[k].time/totalTime*100).toFixed(0);
+    return`<div class="stat-card"><div class="stat-head"><span class="stat-dot" style="background:${spkColors[k]}"></span><span class="stat-name s${k}">${spkLabel(parseInt(k))}</span></div><div class="stat-details">${ftShort(stats[k].time)} (${pct}%) &middot; ${stats[k].words} words</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${pct}%;background:${spkColors[k]}"></div></div></div>`;
+  }).join('');
+}
+
+// ── AUDIO PLAYER ──
+let audioURL=null;
+function initAudio(file){
+  if(audioURL) URL.revokeObjectURL(audioURL);
+  audioURL=URL.createObjectURL(file);
+  $('audioEl').src=audioURL;
+  $('audioEl').load();
+}
+function seekAudio(t){
+  const el=$('audioEl');
+  if(el.src){el.currentTime=t;if(el.paused){el.play();$('playPause').innerHTML='&#9646;&#9646;';}}
+}
+$('playPause').addEventListener('click',()=>{
+  const el=$('audioEl');
+  if(!el.src) return;
+  if(el.paused){el.play();$('playPause').innerHTML='&#9646;&#9646;';}
+  else{el.pause();$('playPause').innerHTML='&#9654;';}
+});
+$('progressWrap').addEventListener('click',e=>{
+  const el=$('audioEl');if(!el.duration)return;
+  const pct=e.offsetX/e.currentTarget.offsetWidth;el.currentTime=pct*el.duration;
+});
+$('audioEl').addEventListener('timeupdate',()=>{
+  const el=$('audioEl');if(!el.duration)return;
+  const pct=(el.currentTime/el.duration)*100;
+  $('progressFill').style.width=pct+'%';
+  $('curTime').textContent=ftShort(el.currentTime);
+  $('tlPlayhead').style.left=(el.currentTime/dur*100)+'%';
+  // Highlight active segment
+  document.querySelectorAll('.seg.playing,.para-block.playing').forEach(e=>e.classList.remove('playing'));
+  const t=el.currentTime;
+  document.querySelectorAll('.seg[data-start]').forEach(el=>{const segs=getSegments();const i=parseInt(el.dataset.i);if(segs[i]&&t>=segs[i].s&&t<=segs[i].e)el.classList.add('playing');});
+  document.querySelectorAll('.para-block[data-start]').forEach(el=>{const start=parseFloat(el.dataset.start);const next=el.nextElementSibling;const end=next?parseFloat(next.dataset.start||dur):dur;if(t>=start&&t<end)el.classList.add('playing');});
+});
+$('audioEl').addEventListener('loadedmetadata',()=>{$('totalTime').textContent=ftShort($('audioEl').duration);});
+
+// ── SEARCH ──
+$('searchToggle').addEventListener('click',()=>{
+  const bar=$('searchBar');bar.classList.toggle('visible');
+  if(bar.classList.contains('visible'))$('searchInput').focus();
+  else{searchTerm='';renderAll();}
+});
+$('searchClose').addEventListener('click',()=>{$('searchBar').classList.remove('visible');searchTerm='';renderAll();});
+$('searchInput').addEventListener('input',e=>{searchTerm=e.target.value;searchIdx=0;renderAll();});
+$('searchPrev').addEventListener('click',()=>{if(searchIdx>0){searchIdx--;highlightActive();}});
+$('searchNext').addEventListener('click',()=>{const marks=document.querySelectorAll('mark.hl');if(searchIdx<marks.length-1){searchIdx++;highlightActive();}});
+function updateSearchCount(){
+  const marks=document.querySelectorAll('mark.hl');
+  $('searchCount').textContent=searchTerm?`${marks.length?searchIdx+1:0}/${marks.length}`:'';
+  if(marks.length)highlightActive();
+}
+function highlightActive(){
+  document.querySelectorAll('mark.hl.active').forEach(m=>m.classList.remove('active'));
+  const marks=document.querySelectorAll('mark.hl');
+  if(marks[searchIdx]){marks[searchIdx].classList.add('active');marks[searchIdx].scrollIntoView({block:'center',behavior:'smooth'});}
+}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();$('searchBar').classList.add('visible');$('searchInput').focus();}});
+
+// ── EDIT MODE ──
+$('editToggle').addEventListener('click',()=>{
+  editMode=!editMode;$('editToggle').classList.toggle('on',editMode);renderAll();
+});
+
+// ── UI WIRING ──
+const fileInput=$('fileInput'),dropzone=$('dropzone');let selectedFile=null;
+$('uploadBtn').addEventListener('click',e=>{e.stopPropagation();fileInput.click()});
+dropzone.addEventListener('click',()=>fileInput.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('dragover')});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('dragover');if(e.dataTransfer.files.length)pickFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',()=>{if(fileInput.files.length)pickFile(fileInput.files[0])});
+$('removeFile').addEventListener('click',()=>{selectedFile=null;$('fileSelected').classList.remove('visible');fileInput.value='';$('runBtn').disabled=true;});
+function pickFile(f){selectedFile=f;$('fileName').textContent=f.name;$('fileSize').textContent=(f.size/1048576).toFixed(1)+' MB';$('fileSelected').classList.add('visible');$('runBtn').disabled=false;initAudio(f);}
+
+$('runBtn').addEventListener('click',()=>{
+  if(!selectedFile)return;
+  $('outputEmpty').style.display='none';
+  document.querySelectorAll('.output-container').forEach(c=>c.classList.remove('visible'));
+  $('loadingOverlay').classList.add('visible');
+  setTimeout(()=>{
+    $('loadingOverlay').classList.remove('visible');shown=true;
+    $('audioPlayer').classList.add('visible');$('timelineBar').classList.add('visible');
+    showOut(currentOut);
+  },2000);
+});
+function showOut(which){currentOut=which;renderAll();document.querySelectorAll('.output-container').forEach(c=>c.classList.remove('visible'));const map={transcript:'outTranscript',json:'outJson',srt:'outSrt',vtt:'outVtt',txt:'outTxt'};$(map[which])?.classList.add('visible');}
+document.querySelectorAll('#outputTabs .tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('#outputTabs .tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');if(shown)showOut(t.dataset.out);})});
+document.querySelectorAll('[data-left]').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('[data-left]').forEach(x=>x.classList.remove('active'));t.classList.add('active');$('panelFeatures').classList.toggle('visible',t.dataset.left==='features');$('panelCode').classList.toggle('visible',t.dataset.left==='code');if(t.dataset.left==='code')renderCode();})});
+document.querySelectorAll('.view-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.view-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentView=b.dataset.v;$('lineView').style.display=currentView==='line'?'block':'none';$('paraView').style.display=currentView==='para'?'block':'none';})});
+document.querySelectorAll('.feature-item .toggle input').forEach(inp=>{inp.addEventListener('change',()=>{const p=inp.closest('.feature-item')?.querySelector('.feature-param');if(p){const parts=p.textContent.split('=');p.textContent=parts[0]+'='+inp.checked;}renderAll();})});
+$('feat-diarize').addEventListener('change',function(){$('diarize-opts').classList.toggle('visible',this.checked)});
+$('feat-trim').addEventListener('change',function(){$('trim-opts').classList.toggle('visible',this.checked)});
+$('feat-para').addEventListener('change',function(){$('para-opts').classList.toggle('visible',this.checked)});
+$('feat-confidence').addEventListener('change',function(){$('conf-opts').classList.toggle('visible',this.checked)});
+$('feat-fr').addEventListener('change',function(){$('fr-opts').classList.toggle('visible',this.checked);renderAll()});
+$('feat-labels').addEventListener('change',function(){$('label-opts').classList.toggle('visible',this.checked);if(!this.checked){Object.keys(spkNames).forEach(k=>spkNames[k]='');document.querySelectorAll('.spk-inp').forEach(i=>i.value='');}renderAll()});
+$('feat-multichannel').addEventListener('change',function(){const d=$('feat-diarize');if(this.checked){d.checked=false;d.disabled=true;$('diarize-opts').classList.remove('visible');const p=d.closest('.feature-item').querySelector('.feature-param');if(p)p.textContent='diarize=false';}else d.disabled=false;renderAll()});
+$('silence-thr').addEventListener('input',function(){$('silence-val').textContent=parseFloat(this.value).toFixed(1)+'s'});
+$('conf-thr').addEventListener('input',function(){$('conf-val').textContent=parseFloat(this.value).toFixed(2);const p=$('feat-confidence').closest('.feature-item').querySelector('.feature-param');if(p)p.textContent='min_confidence='+this.value});
+document.querySelectorAll('.spk-inp').forEach(inp=>{inp.addEventListener('input',()=>{spkNames[inp.dataset.s]=inp.value.trim();renderAll()})});
+$('frAdd').addEventListener('click',()=>{const r=document.createElement('div');r.className='fr-rule';r.innerHTML=`<input type="text" placeholder="Find..." class="fr-find"><span class="fr-arrow">&rarr;</span><input type="text" placeholder="Replace..." class="fr-rep"><button class="fr-rm">&times;</button>`;$('frRules').appendChild(r);r.querySelector('.fr-rm').addEventListener('click',()=>{r.remove();renderAll()});r.querySelectorAll('input').forEach(i=>i.addEventListener('input',renderAll))});
+document.querySelectorAll('.fr-rm').forEach(b=>b.addEventListener('click',()=>{b.closest('.fr-rule').remove();renderAll()}));
+document.querySelectorAll('#frRules input').forEach(i=>i.addEventListener('input',renderAll));
+
+function renderCode(){
+  const flags=[];flags.push(['-F','"file=@audio.mp3"']);
+  if(ck('feat-diarize'))flags.push(['-F','"diarize=true"']);
+  const ns=$('num-spk').value;if(ns)flags.push(['-F',`"num_speakers=${ns}"`]);
+  const mins=$('min-spk').value;if(mins)flags.push(['-F',`"min_speakers=${mins}"`]);
+  const maxs=$('max-spk').value;if(maxs)flags.push(['-F',`"max_speakers=${maxs}"`]);
+  if(ck('feat-wordts'))flags.push(['-F','"word_timestamps=true"']);
+  if(!ck('feat-punct'))flags.push(['-F','"punctuate=false"']);
+  if(!ck('feat-smart'))flags.push(['-F','"smart_format=false"']);
+  if(ck('feat-para'))flags.push(['-F','"detect_paragraphs=true"']);
+  if(ck('feat-fillers'))flags.push(['-F','"remove_fillers=true"']);
+  if(ck('feat-profanity'))flags.push(['-F','"filter_profanity=true"']);
+  if(ck('feat-confidence'))flags.push(['-F',`"min_confidence=${$('conf-thr').value}"`]);
+  if(ck('feat-trim')){const ts=$('trim-start').value,te=$('trim-end').value;if(ts&&ts!=='0:00')flags.push(['-F',`"trim_start=${ts}"`]);if(te)flags.push(['-F',`"trim_end=${te}"`]);}
+  if(ck('feat-multichannel'))flags.push(['-F','"multichannel=true"']);
+  flags.push(['-F','"response_format=verbose_json"']);
+  const url='http://192.168.1.10:20301/v1/audio/transcriptions';
+  $('curlBlock').innerHTML=`<button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.textContent.replace('Copy','').trim());this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>`+[`<span class="cmd">curl</span> <span class="flag">-X POST</span> \\`,...flags.map(([f,v])=>`  <span class="flag">${f}</span> <span class="val">${v}</span> \\`),`  <span class="url">${url}</span>`].join('\n');
+  const pyFlags=flags.filter(f=>f[0]==='-F').map(f=>{const inner=f[1].replace(/^"|"$/g,'');const[k,...rest]=inner.split('=');return`    "${k}": "${rest.join('=')}",`});
+  $('pythonBlock').innerHTML=`<span class="cmd">import</span> requests\n\nurl = <span class="str">"${url}"</span>\nfiles = {<span class="str">"file"</span>: <span class="cmd">open</span>(<span class="str">"audio.mp3"</span>, <span class="str">"rb"</span>)}\ndata = {\n${pyFlags.join('\n')}\n}\n\nresponse = requests.post(url, files=files, data=data)\nresult = response.json()\n\n<span class="comment"># Print paragraphs with speaker labels</span>\n<span class="cmd">for</span> p <span class="cmd">in</span> result.get(<span class="str">"paragraphs"</span>, []):\n    speaker = p.get(<span class="str">"speaker"</span>, <span class="str">"Unknown"</span>)\n    <span class="cmd">print</span>(<span class="str">f"[{p['start']:.1f}s - {p['end']:.1f}s] {speaker}:"</span>)\n    <span class="cmd">print</span>(<span class="str">f"  {p['text']}\\n"</span>)`;
+}
+renderCode();
+</script>
+</body>
+</html>
