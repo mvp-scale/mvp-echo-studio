@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { type TranscriptionOptions, type TextRule, type TextRuleset, type TextRuleCategory } from "../types";
+import { type TranscriptionOptions, type TextRule, type TextRuleset, type TextRuleCategory, ENTITY_TYPE_CONFIG, SENTIMENT_TYPE_CONFIG } from "../types";
 import { DEFAULT_TEXT_RULES } from "../utils/text-rule-presets";
 
 interface Props {
@@ -472,6 +472,33 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
               </div>
             </div>
           </div>
+          {options.detectEntities && (
+            <div className="mt-2 pl-[46px]">
+              <div className="flex flex-wrap gap-1.5">
+                {ENTITY_TYPE_CONFIG.map((t) => {
+                  const active = options.visibleEntityTypes[t.key] ?? true;
+                  return (
+                    <button
+                      key={t.key}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all
+                        ${active
+                          ? t.colorClass
+                          : "bg-surface-3 text-gray-600 border border-border"
+                        }`}
+                      onClick={() => {
+                        set("visibleEntityTypes", {
+                          ...options.visibleEntityTypes,
+                          [t.key]: !active,
+                        });
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Topic Detection */}
@@ -494,9 +521,55 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
           </div>
         </div>
 
+        {/* Sentiment Analysis */}
+        <div className="py-2.5">
+          <div className="flex items-start gap-2.5">
+            <Toggle
+              checked={options.detectSentiment}
+              onChange={(v) => set("detectSentiment", v)}
+              disabled={disabled}
+            />
+            <div className="flex-1">
+              <div className="text-[13px] font-semibold">Sentiment Analysis</div>
+              <div className="text-[10px] font-mono text-mvp-blue-light mt-0.5">
+                detect_sentiment={String(options.detectSentiment)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-0.5">
+                Positive, neutral, or negative per paragraph.
+              </div>
+            </div>
+          </div>
+          {options.detectSentiment && (
+            <div className="mt-2 pl-[46px]">
+              <div className="flex flex-wrap gap-1.5">
+                {SENTIMENT_TYPE_CONFIG.map((t) => {
+                  const active = options.visibleSentimentTypes[t.key] ?? true;
+                  return (
+                    <button
+                      key={t.key}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all
+                        ${active
+                          ? t.colorClass
+                          : "bg-surface-3 text-gray-600 border border-border"
+                        }`}
+                      onClick={() => {
+                        set("visibleSentimentTypes", {
+                          ...options.visibleSentimentTypes,
+                          [t.key]: !active,
+                        });
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Future features */}
         {[
-          { name: "Sentiment", phase: "Phase 3" },
           { name: "Summarization", phase: "Phase 3" },
         ].map((feat) => (
           <div key={feat.name} className="py-2">

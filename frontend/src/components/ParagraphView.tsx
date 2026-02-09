@@ -1,4 +1,5 @@
 import type { Paragraph } from "../types";
+import { ENTITY_TYPE_CONFIG, SENTIMENT_CONFIG } from "../types";
 import { speakerColor, speakerName } from "./SpeakerBadge";
 
 interface Props {
@@ -6,6 +7,9 @@ interface Props {
   currentTime: number;
   searchQuery: string;
   onClickTimestamp: (time: number) => void;
+  visibleEntityTypes: Record<string, boolean>;
+  showSentiment: boolean;
+  visibleSentimentTypes: Record<string, boolean>;
 }
 
 function formatTime(seconds: number): string {
@@ -42,6 +46,9 @@ export default function ParagraphView({
   currentTime,
   searchQuery,
   onClickTimestamp,
+  visibleEntityTypes,
+  showSentiment,
+  visibleSentimentTypes,
 }: Props) {
   if (!paragraphs.length) return null;
 
@@ -67,7 +74,7 @@ export default function ParagraphView({
             style={{ borderLeftColor: color }}
             onClick={() => onClickTimestamp(para.start)}
           >
-            <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
               {para.speaker && (
                 <span
                   className="text-xs font-bold"
@@ -79,6 +86,38 @@ export default function ParagraphView({
               <span className="text-[10px] font-mono text-gray-500">
                 {formatTime(para.start)} &rarr; {formatTime(para.end)}
               </span>
+              {para.entity_counts && (() => {
+                const pills = ENTITY_TYPE_CONFIG
+                  .filter((t) => visibleEntityTypes[t.key] && para.entity_counts![t.key])
+                  .map((t) => (
+                    <span
+                      key={t.key}
+                      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${t.colorClass}`}
+                    >
+                      {para.entity_counts![t.key]} {t.label}
+                    </span>
+                  ));
+                return pills.length > 0 ? (
+                  <div className="flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]">
+                    <span className="text-[9px] uppercase tracking-wider text-gray-600 font-semibold">Entities</span>
+                    {pills}
+                  </div>
+                ) : null;
+              })()}
+              <div className="ml-auto" />
+              {showSentiment && para.sentiment && (() => {
+                const cfg = SENTIMENT_CONFIG[para.sentiment.label];
+                if (!cfg) return null;
+                if (!(visibleSentimentTypes[para.sentiment.label] ?? true)) return null;
+                return (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]">
+                    <span className="text-[9px] uppercase tracking-wider text-gray-600 font-semibold">Sentiment</span>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${cfg.colorClass}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
             <div className="text-[13px] leading-relaxed text-gray-200">
               {highlightText(para.text, searchQuery)}

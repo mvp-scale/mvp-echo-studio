@@ -121,6 +121,56 @@ def redact_entities(
     return segments
 
 
+def annotate_paragraphs_with_entities(paragraphs: List[Dict]) -> List[Dict]:
+    """Add entity_counts to each paragraph dict.
+
+    Runs spaCy NER on each paragraph's text and stores per-type counts.
+    GPE and LOC are merged into a single "Locations" bucket.
+
+    Args:
+        paragraphs: List of paragraph dicts (with at least a "text" key).
+
+    Returns:
+        The same list with "entity_counts" added to each dict.
+    """
+    nlp = _get_nlp()
+    if nlp is None:
+        return paragraphs
+
+    # Map spaCy labels to canonical display keys (merge GPE+LOC)
+    label_map = {
+        "PERSON": "PERSON",
+        "ORG": "ORG",
+        "GPE": "GPE",
+        "LOC": "GPE",  # merge LOC into GPE bucket
+        "DATE": "DATE",
+        "TIME": "TIME",
+        "MONEY": "MONEY",
+        "CARDINAL": "CARDINAL",
+        "ORDINAL": "ORDINAL",
+        "PRODUCT": "PRODUCT",
+        "EVENT": "EVENT",
+        "WORK_OF_ART": "WORK_OF_ART",
+        "LAW": "LAW",
+        "NORP": "NORP",
+    }
+
+    for para in paragraphs:
+        text = para.get("text", "")
+        if not text.strip():
+            continue
+        doc = nlp(text)
+        counts: Counter = Counter()
+        for ent in doc.ents:
+            canonical = label_map.get(ent.label_)
+            if canonical:
+                counts[canonical] += 1
+        if counts:
+            para["entity_counts"] = dict(counts)
+
+    return paragraphs
+
+
 def extract_topics(segments: list, top_n: int = 10) -> Optional[List[Dict]]:
     """Extract topics from transcription via noun phrase frequency.
 

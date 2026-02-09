@@ -19,5 +19,6 @@ rich
 safetensors
 soundfile
 spacy
+vaderSentiment
 # torch-audiomentations: installed separately with --no-deps (depends on torchaudio)
 # torchmetrics: installed separately with --no-deps (backtrack loop with torch pin)

@@ -8,6 +8,11 @@ export interface Segment {
   no_speech_prob?: number;
 }
 
+export interface SentimentResult {
+  label: "positive" | "neutral" | "negative";
+  score: number;
+}
+
 export interface Paragraph {
   speaker?: string;
   originalSpeaker?: string;
@@ -15,6 +20,8 @@ export interface Paragraph {
   end: number;
   text: string;
   segment_count: number;
+  entity_counts?: Record<string, number>;
+  sentiment?: SentimentResult;
 }
 
 export interface SpeakerStatistics {
@@ -84,7 +91,52 @@ export interface TranscriptionOptions {
   speakerLabels: Record<string, string>;
   detectEntities: boolean;
   detectTopics: boolean;
+  detectSentiment: boolean;
+  visibleEntityTypes: Record<string, boolean>;
+  visibleSentimentTypes: Record<string, boolean>;
 }
+
+export interface EntityTypeConfig {
+  key: string;
+  label: string;
+  colorClass: string;
+}
+
+export const ENTITY_TYPE_CONFIG: EntityTypeConfig[] = [
+  { key: "PERSON", label: "People", colorClass: "bg-purple-500/15 text-purple-400" },
+  { key: "ORG", label: "Organizations", colorClass: "bg-blue-500/15 text-blue-400" },
+  { key: "GPE", label: "Locations", colorClass: "bg-green-500/15 text-green-400" },
+  { key: "DATE", label: "Dates", colorClass: "bg-yellow-500/15 text-yellow-500" },
+  { key: "TIME", label: "Times", colorClass: "bg-yellow-500/15 text-yellow-500" },
+  { key: "MONEY", label: "Money", colorClass: "bg-emerald-500/15 text-emerald-400" },
+  { key: "CARDINAL", label: "Numbers", colorClass: "bg-gray-500/15 text-gray-400" },
+  { key: "ORDINAL", label: "Ordinals", colorClass: "bg-gray-500/15 text-gray-400" },
+  { key: "PRODUCT", label: "Products", colorClass: "bg-orange-500/15 text-orange-400" },
+  { key: "EVENT", label: "Events", colorClass: "bg-pink-500/15 text-pink-400" },
+  { key: "WORK_OF_ART", label: "Works", colorClass: "bg-indigo-500/15 text-indigo-400" },
+  { key: "LAW", label: "Legal", colorClass: "bg-red-500/15 text-red-400" },
+  { key: "NORP", label: "Groups", colorClass: "bg-teal-500/15 text-teal-400" },
+];
+
+export interface SentimentTypeConfig {
+  key: string;
+  label: string;
+  colorClass: string;
+}
+
+export const SENTIMENT_TYPE_CONFIG: SentimentTypeConfig[] = [
+  { key: "positive", label: "Positive", colorClass: "bg-emerald-500/15 text-emerald-400" },
+  { key: "neutral", label: "Neutral", colorClass: "bg-gray-500/15 text-gray-400" },
+  { key: "negative", label: "Negative", colorClass: "bg-red-500/15 text-red-400" },
+];
+
+export const SENTIMENT_CONFIG: Record<string, { label: string; colorClass: string }> = Object.fromEntries(
+  SENTIMENT_TYPE_CONFIG.map((t) => [t.key, { label: t.label, colorClass: t.colorClass }])
+);
+
+const DEFAULT_VISIBLE_ENTITY_TYPES: Record<string, boolean> = Object.fromEntries(
+  ENTITY_TYPE_CONFIG.map((t) => [t.key, true])
+);
 
 export const DEFAULT_OPTIONS: TranscriptionOptions = {
   diarize: true,
@@ -95,8 +147,11 @@ export const DEFAULT_OPTIONS: TranscriptionOptions = {
   textRuleCategory: "all",
   minConfidence: 0.0,
   speakerLabels: {},
-  detectEntities: false,
+  detectEntities: true,
   detectTopics: false,
+  detectSentiment: true,
+  visibleEntityTypes: { ...DEFAULT_VISIBLE_ENTITY_TYPES },
+  visibleSentimentTypes: { positive: true, neutral: true, negative: true },
 };
 
 export interface HealthResponse {

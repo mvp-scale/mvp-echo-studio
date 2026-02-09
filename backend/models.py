@@ -17,6 +17,12 @@ class WhisperSegment(BaseModel):
     speaker: Optional[str] = None
 
 
+class SentimentResult(BaseModel):
+    """Sentiment analysis result for a paragraph."""
+    label: str  # "positive", "neutral", "negative"
+    score: float  # VADER compound score: -1.0 to +1.0
+
+
 class Paragraph(BaseModel):
     """A group of consecutive same-speaker segments."""
     speaker: Optional[str] = None
@@ -24,6 +30,8 @@ class Paragraph(BaseModel):
     end: float
     text: str
     segment_count: int
+    entity_counts: Optional[Dict[str, int]] = None
+    sentiment: Optional[SentimentResult] = None
 
 
 class SpeakerStatistics(BaseModel):

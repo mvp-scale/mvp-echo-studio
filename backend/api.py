@@ -4,14 +4,14 @@ import logging
 from typing import List, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, FileResponse
 import torch
 
 from models import (
     WhisperSegment, TranscriptionResponse, ModelInfo, ModelList,
-    Paragraph, SpeakerStatistics, Statistics, Entity, Topic,
+    Paragraph, SpeakerStatistics, Statistics, Topic,
 )
 from audio import convert_audio_to_wav, split_audio_into_chunks
 from transcription import load_model, format_srt, format_vtt, transcribe_audio_chunk
@@ -21,7 +21,8 @@ from post_processing import (
     apply_text_rules, filter_by_confidence, compute_speaker_statistics,
     apply_speaker_labels,
 )
-from entity_detection import extract_entities, extract_topics
+from entity_detection import extract_topics, annotate_paragraphs_with_entities
+from sentiment_analysis import annotate_paragraphs_with_sentiment
 from config import get_config
 from auth import AuthMiddleware
 
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
         # --- Audio Intelligence ---
         detect_entities: bool = Form(False),
         detect_topics: bool = Form(False),
+        detect_sentiment: bool = Form(False),
     ):
         global asr_model, diarizer_instance
 
@@ -238,6 +240,12 @@ def create_app() -> FastAPI:
             paragraphs_data = None
             if detect_paragraphs_flag and all_segments:
                 raw_paragraphs = detect_paragraphs(all_segments, paragraph_silence_threshold)
+                # Annotate paragraphs with per-paragraph entity counts
+                if detect_entities:
+                    annotate_paragraphs_with_entities(raw_paragraphs)
+                # Annotate paragraphs with sentiment
+                if detect_sentiment:
+                    annotate_paragraphs_with_sentiment(raw_paragraphs)
                 paragraphs_data = [Paragraph(**p) for p in raw_paragraphs]
 
             # 6. Speaker statistics
@@ -250,14 +258,7 @@ def create_app() -> FastAPI:
                         total_speakers=raw_stats["total_speakers"],
                     )
 
-            # 7. Entity detection (spaCy NER)
-            entities_data = None
-            if detect_entities and all_segments:
-                raw_entities = extract_entities(all_segments)
-                if raw_entities:
-                    entities_data = [Entity(**e) for e in raw_entities]
-
-            # 8. Topic extraction (spaCy noun phrases)
+            # 7. Topic extraction (spaCy noun phrases)
             topics_data = None
             if detect_topics and all_segments:
                 raw_topics = extract_topics(all_segments)
@@ -272,7 +273,6 @@ def create_app() -> FastAPI:
                 model="parakeet-tdt-0.6b-v2",
                 paragraphs=paragraphs_data,
                 statistics=statistics_data,
-                entities=entities_data,
                 topics=topics_data,
             )
 
@@ -302,6 +302,26 @@ def create_app() -> FastAPI:
             raise
         except Exception as e:
             logger.error(f"Transcription error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/v1/audio/entities")
+    async def annotate_entities(paragraphs: List[dict] = Body(...)):
+        """Annotate paragraph texts with entity counts (lightweight, CPU-only)."""
+        try:
+            annotate_paragraphs_with_entities(paragraphs)
+            return [p.get("entity_counts") for p in paragraphs]
+        except Exception as e:
+            logger.error(f"Entity annotation error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/v1/audio/sentiment")
+    async def annotate_sentiment(paragraphs: List[dict] = Body(...)):
+        """Annotate paragraph texts with sentiment (lightweight, CPU-only)."""
+        try:
+            annotate_paragraphs_with_sentiment(paragraphs)
+            return [p.get("sentiment") for p in paragraphs]
+        except Exception as e:
+            logger.error(f"Sentiment annotation error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/health")

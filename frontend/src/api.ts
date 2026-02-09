@@ -1,4 +1,4 @@
-import type { TranscriptionResponse, TranscriptionOptions, HealthResponse } from "./types";
+import type { TranscriptionResponse, TranscriptionOptions, HealthResponse, SentimentResult } from "./types";
 
 const BASE = import.meta.env.DEV ? "" : "";
 
@@ -51,10 +51,47 @@ export async function transcribe(
   if (options.detectTopics) {
     form.append("detect_topics", "true");
   }
+  if (options.detectSentiment) {
+    form.append("detect_sentiment", "true");
+  }
 
   const res = await fetch(`${BASE}/v1/audio/transcriptions`, {
     method: "POST",
     body: form,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function annotateEntities(
+  paragraphTexts: { text: string }[]
+): Promise<(Record<string, number> | null)[]> {
+  const res = await fetch(`${BASE}/v1/audio/entities`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(paragraphTexts),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function annotateSentiment(
+  paragraphTexts: { text: string }[]
+): Promise<(SentimentResult | null)[]> {
+  const res = await fetch(`${BASE}/v1/audio/sentiment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(paragraphTexts),
   });
 
   if (!res.ok) {
