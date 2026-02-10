@@ -40,27 +40,92 @@ First startup downloads ~8GB of models (cached in Docker volume).
 ## How It Works
 
 ```mermaid
-flowchart LR
-    A[Audio Upload] --> B[FFmpeg Convert]
-    B --> C{Parallel GPU}
-    C --> D[NeMo ASR - fp16]
-    C --> E[Pyannote Diarization]
-    D --> F[Merge Speaker Labels]
-    E --> F
-    F --> G[Post-Processing]
-    G --> H[JSON / SRT / VTT / TXT]
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant GPU
+
+    User->>Frontend: Upload audio
+    Frontend->>API: POST /v1/audio/transcriptions
+    API->>GPU: Convert → Transcribe + Diarize (parallel)
+    GPU-->>API: Segments with speaker labels
+    API->>API: Post-process (paragraphs, entities, sentiment)
+    API-->>Frontend: Structured transcript
+    Frontend-->>User: Interactive viewer with playback
 ```
 
+## Architecture
+
+Hexagonal (ports and adapters). The core pipeline only talks to abstract interfaces — never to a specific model, framework, or database. Everything behind a port is replaceable.
+
 ```mermaid
-flowchart TB
-    subgraph Startup
-        S1[Docker Compose] --> S2[GPU Check]
-        S2 --> S3[Load NeMo Parakeet TDT 0.6B]
-        S3 --> S4[Convert to fp16]
-        S4 --> S5[Load Pyannote 3.1]
-        S5 --> S6[Ready on :20301]
+graph TB
+    subgraph Frontend
+        UI[React + TypeScript + Tailwind]
     end
+
+    UI -->|HTTP| API
+
+    subgraph Backend
+        API[FastAPI · Auth · Rate Limiting]
+        API --> UC[TranscribeAudioUseCase]
+
+        subgraph Ports["Ports (abstract interfaces)"]
+            TP[TranscriptionPort]
+            DP[DiarizationPort]
+            AP[AudioPort]
+            JP[JobQueuePort]
+            RP[RateLimiterPort]
+            PP[ProgressPort]
+            KP[KeyStorePort]
+        end
+
+        UC --> TP
+        UC --> DP
+        UC --> AP
+        UC --> PP
+        API --> JP
+        API --> RP
+        API --> KP
+    end
+
+    subgraph Adapters["Adapters (swappable implementations)"]
+        subgraph ASR["ASR · ENGINE=nemo|sherpa|?"]
+            NeMo[NeMo Parakeet]
+            Sherpa[Sherpa-ONNX]
+            Future1[Future models]
+        end
+        subgraph Diarization
+            Pyannote[Pyannote 3.1]
+        end
+        subgraph Audio
+            FFmpeg[FFmpeg]
+        end
+        subgraph Infra["Infra · INFRA=local|redis"]
+            Local[In-memory sync]
+            Redis[Redis queues]
+        end
+    end
+
+    TP --> NeMo
+    TP --> Sherpa
+    TP -.-> Future1
+    DP --> Pyannote
+    AP --> FFmpeg
+    JP --> Local
+    JP --> Redis
+    RP --> Local
+    RP --> Redis
+    KP --> Local
+    PP --> Local
+
+    style Ports fill:none,stroke:#6366f1,stroke-width:2px
+    style Adapters fill:none,stroke:#14b8a6,stroke-width:2px
+    style Future1 stroke-dasharray: 5 5
 ```
+
+Change `ENGINE=nemo` to `ENGINE=sherpa` and the entire ASR engine swaps out — the frontend, the use case, and diarization don't change. Same for infrastructure: flip `INFRA=local` to `INFRA=redis` for job queues and distributed rate limiting. When a faster model comes out next year, it plugs into `TranscriptionPort` and everything else stays the same.
 
 ## What We Tried — The Full Optimization Log
 
