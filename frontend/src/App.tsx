@@ -366,13 +366,102 @@ export default function App() {
             </div>
           )}
 
-          {/* Empty state */}
+          {/* Empty state — ghost preview with info overlay */}
           {!isProcessing && !isDone && state !== "error" && (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
-              <div className="text-4xl opacity-25">&#128196;</div>
-              <p className="text-sm max-w-[280px] text-center">
-                Upload audio and click <strong className="text-gray-300">Run</strong> to see output here.
-              </p>
+            <div className="flex-1 flex flex-col relative overflow-hidden">
+              {/* Ghost preview layer */}
+              <div className="absolute inset-0 opacity-[0.06] pointer-events-none select-none" aria-hidden="true">
+                {/* Fake waveform */}
+                <div className="px-5 py-3 border-b border-gray-500">
+                  <div className="flex items-end gap-[2px] h-8">
+                    {Array.from({ length: 80 }, (_, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-gray-400 rounded-sm"
+                        style={{ height: `${12 + Math.sin(i * 0.4) * 20 + Math.random() * 60}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fake speaker timeline */}
+                <div className="px-5 py-2 border-b border-gray-500">
+                  <div className="flex h-3 rounded overflow-hidden gap-[1px]">
+                    {[0,1,0,2,1,0,2,0,1,2,0,1].map((s, i) => (
+                      <div
+                        key={i}
+                        className="h-full"
+                        style={{
+                          flex: [3,2,4,2,3,5,2,4,3,2,5,3][i],
+                          backgroundColor: ["#6366f1","#ec4899","#14b8a6"][s],
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fake transcript rows */}
+                <div className="p-2 space-y-1">
+                  {[
+                    { speaker: 0, time: "0:00.00 → 0:03.40", text: "Good morning everyone, thanks for joining today's call." },
+                    { speaker: 1, time: "0:03.40 → 0:08.12", text: "Thanks for having me. I wanted to walk through the quarterly results." },
+                    { speaker: 0, time: "0:08.12 → 0:12.55", text: "Sounds good. Let's start with the revenue numbers and then move to the product roadmap." },
+                    { speaker: 2, time: "0:12.55 → 0:18.30", text: "If I could jump in — the engineering team shipped three major features this quarter." },
+                    { speaker: 1, time: "0:18.30 → 0:24.80", text: "Right, and those directly contributed to the retention improvements we're seeing." },
+                    { speaker: 0, time: "0:24.80 → 0:29.10", text: "Great. Can you share the specific metrics on that?" },
+                    { speaker: 2, time: "0:29.10 → 0:35.60", text: "Sure. Monthly active users are up fourteen percent and churn dropped to under two percent." },
+                    { speaker: 1, time: "0:35.60 → 0:41.20", text: "We also saw a significant uptick in enterprise adoption during the last six weeks." },
+                  ].map((row, i) => (
+                    <div
+                      key={i}
+                      className="flex items-baseline gap-3 px-3.5 py-1.5 border-l-[3px]"
+                      style={{ borderLeftColor: ["#6366f1","#ec4899","#14b8a6"][row.speaker] }}
+                    >
+                      <div className="flex items-baseline gap-2 shrink-0 w-[200px]">
+                        <span className="text-xs font-bold" style={{ color: ["#6366f1","#ec4899","#14b8a6"][row.speaker] }}>
+                          Speaker {row.speaker + 1}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-500">{row.time}</span>
+                      </div>
+                      <span className="text-[13px] leading-relaxed text-gray-200">{row.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info overlay */}
+              <div className="flex-1 flex items-center justify-center z-10">
+                <div className="bg-surface-1/90 backdrop-blur-sm border border-border rounded-2xl px-12 py-9 max-w-lg text-center space-y-5">
+                  <div className="text-2xl font-bold text-gray-100 tracking-tight">
+                    Research-Grade Speech Recognition
+                  </div>
+
+                  <div className="text-3xl font-extrabold text-mvp-blue-light tracking-tight">
+                    50x Realtime
+                  </div>
+                  <div className="text-[13px] text-gray-400 leading-relaxed -mt-2">
+                    A full hour-long podcast transcribed in about 70 seconds
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-left">
+                    {[
+                      { label: "Speaker Diarization", desc: "Know who said what" },
+                      { label: "Paragraph Grouping", desc: "Structured, readable output" },
+                      { label: "Entity Detection", desc: "People, orgs, and locations" },
+                      { label: "Sentiment Analysis", desc: "Tone per paragraph" },
+                    ].map((f) => (
+                      <div key={f.label} className="px-3 py-2 rounded-lg bg-surface-2/60 border border-border">
+                        <div className="text-[11px] font-semibold text-gray-300">{f.label}</div>
+                        <div className="text-[10px] text-gray-500">{f.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-[12px] text-gray-500 pt-2">
+                    Drop an audio file to begin
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

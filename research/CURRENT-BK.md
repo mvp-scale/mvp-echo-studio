@@ -605,12 +605,13 @@ docker compose up -d --build
 # View logs
 docker compose logs -f mvp-scribe
 
-# Test API (no auth from LAN)
-curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
+# Test API
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3" -F "diarize=true" \
   http://192.168.1.10:20301/v1/audio/transcriptions
 
 # Test with all Phase 1 features
-curl -X POST \
+curl -X POST -H "Authorization: Bearer $API_KEY" \
   -F "file=@audio.mp3" \
   -F "diarize=true" \
   -F "num_speakers=3" \

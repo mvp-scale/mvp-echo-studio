@@ -160,7 +160,8 @@ ports:
 
 3. Access from other machines:
 ```bash
-curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3" -F "diarize=true" \
   http://192.168.1.10:20301/v1/audio/transcriptions
 ```
 

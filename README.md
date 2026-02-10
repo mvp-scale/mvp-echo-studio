@@ -30,7 +30,8 @@ echo "HF_TOKEN=hf_your_token_here" > .env
 ./scripts/start.sh nemo
 
 # Open http://localhost:20301
-# Or: curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
+# Or: curl -X POST -H "Authorization: Bearer $API_KEY" \
+#   -F "file=@audio.mp3" -F "diarize=true" \
 #   -F "response_format=verbose_json" http://localhost:20301/v1/audio/transcriptions
 ```
 
@@ -149,9 +150,7 @@ This wasn't a single test. It was a systematic, phased approach to squeeze every
 ### Phase 5: Production Hardening (Feb 10, evening)
 
 - [x] CORS locked to `scribe.mvp-scale.com` + localhost dev
-- [x] Auth middleware: API keys for external, LAN bypass for local
-- [x] Cloudflare tunnel support (`CF-Connecting-IP` header)
-- [x] Tailscale CGNAT bypass (`100.64.0.0/10`)
+- [x] Auth middleware: API keys required for all `/v1/audio/*` requests
 - [x] Frontend API key input (header lock icon)
 - [x] Static files served without auth, API endpoints require key
 - [x] Speaker count hints (Min/Max/Exact) visible before first transcription
@@ -201,7 +200,7 @@ Every one of these was discovered through failure:
 | `detect_entities` | `false` | NER: people, orgs, locations |
 | `detect_sentiment` | `false` | Sentiment per paragraph |
 
-Auth: LAN bypass. External requires `Authorization: Bearer <key>`.
+Auth: All `/v1/audio/*` requests require `Authorization: Bearer <key>`.
 
 ## Project Structure
 

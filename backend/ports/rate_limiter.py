@@ -11,3 +11,7 @@ class RateLimiterPort(ABC):
     @abstractmethod
     def remaining(self, api_key: str) -> int:
         """Return number of remaining requests in current window."""
+
+    @abstractmethod
+    def reset_time(self, api_key: str) -> float:
+        """Return wall-clock epoch when the oldest request expires from the window."""

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { type TranscriptionOptions, type TextRuleCategory, ENTITY_TYPE_CONFIG, SENTIMENT_TYPE_CONFIG } from "../types";
 
 interface Props {
@@ -79,6 +80,69 @@ function NumberInput({
         }
       }}
     />
+  );
+}
+
+const COMING_SOON_FEATURES = [
+  { name: "Real-time Streaming", desc: "Live transcription via WebSocket" },
+  { name: "Multi-language", desc: "100+ languages (Whisper models)" },
+  { name: "Custom Vocabulary", desc: "Boost domain-specific terms" },
+  { name: "Audio Enhancement", desc: "Reduce background noise" },
+  { name: "Word-level Timestamps", desc: "Finer granularity than segments" },
+  { name: "Translation", desc: "Convert transcript to any language" },
+  { name: "Chapter Detection", desc: "Auto-title sections of long recordings" },
+  { name: "Topic Detection", desc: "Extract recurring themes" },
+  { name: "Summarization", desc: "AI-powered condensed version" },
+  { name: "Action Items", desc: "Extract tasks and decisions" },
+  { name: "Key Moments", desc: "Auto-highlight important sections" },
+  { name: "Speaker Identification", desc: "Voice-based speaker matching" },
+  { name: "Emotion Detection", desc: "Detect excitement, frustration, confusion" },
+  { name: "Meeting Notes", desc: "Auto-generate structured summary" },
+];
+
+function ComingSoonSection() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 pb-1 border-b border-border hover:text-gray-400 transition-colors"
+      >
+        <svg
+          className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+        </svg>
+        Coming Soon
+        <span className="text-[9px] font-normal normal-case tracking-normal text-gray-600 ml-1">
+          ({COMING_SOON_FEATURES.length})
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-1">
+          {COMING_SOON_FEATURES.map((feat) => (
+            <div key={feat.name} className="py-1.5">
+              <div className="flex items-center gap-2.5">
+                <Toggle checked={false} onChange={() => {}} disabled />
+                <div className="flex-1">
+                  <div className="text-[12px] font-semibold text-gray-400">
+                    {feat.name}
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-semibold ml-1.5">
+                      Phase 3
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{feat.desc}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -341,44 +405,8 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
 
       </div>
 
-      {/* Coming Soon */}
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 pb-1 border-b border-border">
-          Coming Soon
-        </div>
-
-        {[
-          { name: "Real-time Streaming", desc: "Live transcription via WebSocket" },
-          { name: "Multi-language", desc: "100+ languages (Whisper models)" },
-          { name: "Custom Vocabulary", desc: "Boost domain-specific terms" },
-          { name: "Audio Enhancement", desc: "Reduce background noise" },
-          { name: "Word-level Timestamps", desc: "Finer granularity than segments" },
-          { name: "Translation", desc: "Convert transcript to any language" },
-          { name: "Chapter Detection", desc: "Auto-title sections of long recordings" },
-          { name: "Topic Detection", desc: "Extract recurring themes" },
-          { name: "Summarization", desc: "AI-powered condensed version" },
-          { name: "Action Items", desc: "Extract tasks and decisions" },
-          { name: "Key Moments", desc: "Auto-highlight important sections" },
-          { name: "Speaker Identification", desc: "Voice-based speaker matching" },
-          { name: "Emotion Detection", desc: "Detect excitement, frustration, confusion" },
-          { name: "Meeting Notes", desc: "Auto-generate structured summary" },
-        ].map((feat) => (
-          <div key={feat.name} className="py-1.5">
-            <div className="flex items-center gap-2.5">
-              <Toggle checked={false} onChange={() => {}} disabled />
-              <div className="flex-1">
-                <div className="text-[12px] font-semibold text-gray-400">
-                  {feat.name}
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-semibold ml-1.5">
-                    Phase 3
-                  </span>
-                </div>
-                <div className="text-[10px] text-gray-500 mt-0.5">{feat.desc}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Coming Soon — collapsible */}
+      <ComingSoonSection />
     </div>
   );
 }

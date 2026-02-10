@@ -90,8 +90,8 @@ export default function CodeSamplePanel({ options }: Props) {
   const url = `${window.location.origin}/v1/audio/transcriptions`;
   const config = optionsToConfig(options);
   const configJson = JSON.stringify(config, null, 2);
-
   const curlCmd = `curl -X POST \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -F "file=@audio.mp3" \\
   -F "config=<config.json" \\
   ${url}`;
@@ -99,9 +99,11 @@ export default function CodeSamplePanel({ options }: Props) {
   const pythonCode = `import requests, json
 
 url = "${url}"
+api_key = "YOUR_API_KEY"
 config = json.load(open("config.json"))
 
 response = requests.post(url,
+    headers={"Authorization": f"Bearer {api_key}"},
     files={"file": open("audio.mp3", "rb")},
     data={"config": json.dumps(config)},
 )
@@ -191,6 +193,8 @@ for p in result.get("paragraphs", []):
           <pre className="p-4 bg-surface-2 border border-border rounded-lg text-[11px] font-mono leading-relaxed whitespace-pre-wrap">
             <span className="text-green-400">curl</span>{" "}
             <span className="text-blue-400">-X POST</span>{" \\\n"}
+            {"  "}<span className="text-blue-400">-H</span>{" "}
+            <span className="text-orange-300">"Authorization: Bearer YOUR_API_KEY"</span>{" \\\n"}
             {"  "}<span className="text-blue-400">-F</span>{" "}
             <span className="text-orange-300">"file=@audio.mp3"</span>{" \\\n"}
             {"  "}<span className="text-blue-400">-F</span>{" "}

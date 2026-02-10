@@ -120,7 +120,7 @@ def create_audio_adapter():
 def create_infra_adapters(cfg: Config):
     """Create infrastructure adapters based on INFRA env var."""
     from adapters.local.sync_job import SyncJobAdapter
-    from adapters.local.noop_rate_limiter import NoOpRateLimiter
+    from adapters.local.sliding_window_rate_limiter import SlidingWindowRateLimiter
     from adapters.local.log_progress import LogProgressAdapter
     from adapters.local.json_key_store import JsonFileKeyStore
     from adapters.local.noop_usage import NoOpUsageAdapter
@@ -130,7 +130,7 @@ def create_infra_adapters(cfg: Config):
     if infra == "local":
         adapters = {
             "job_queue": SyncJobAdapter(),
-            "rate_limiter": NoOpRateLimiter(),
+            "rate_limiter": SlidingWindowRateLimiter(max_requests=10, window_seconds=60),
             "progress": LogProgressAdapter(),
             "key_store": JsonFileKeyStore("/data/api-keys.json"),
             "usage": NoOpUsageAdapter(),

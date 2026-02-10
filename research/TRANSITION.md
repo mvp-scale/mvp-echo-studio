@@ -134,7 +134,8 @@ Engine: sherpa
 
 **Test:**
 ```bash
-curl -F "file=@audio.mp3" -F "diarize=true" http://localhost:20301/v1/audio/transcriptions
+curl -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3" -F "diarize=true" http://localhost:20301/v1/audio/transcriptions
 ```
 
 **Should return:**

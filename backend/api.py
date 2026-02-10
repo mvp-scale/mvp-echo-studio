@@ -27,11 +27,12 @@ logger = logging.getLogger(__name__)
 
 config = get_config()
 
+MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
+
 # Adapter instances (set during startup)
 _transcription = None
 _diarization = None
 _audio = None
-_infra = None
 _use_case = None
 
 
@@ -72,8 +73,11 @@ def format_vtt(segments: List[WhisperSegment]) -> str:
 def create_app() -> FastAPI:
     app = FastAPI(title="MVP-Echo Scribe")
 
-    # Auth middleware (LAN bypass + Bearer token)
-    app.add_middleware(AuthMiddleware)
+    # Create infra adapters early (lightweight, no GPU/model dependency)
+    _infra = create_infra_adapters(config)
+
+    # Auth middleware with rate limiter
+    app.add_middleware(AuthMiddleware, rate_limiter=_infra["rate_limiter"])
 
     allowed_origins = [
         "https://scribe.mvp-scale.com",
@@ -85,13 +89,14 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["X-RateLimit-Remaining", "X-RateLimit-Reset"],
     )
 
     @app.on_event("startup")
     async def startup_event():
-        global _transcription, _diarization, _audio, _infra, _use_case
+        global _transcription, _diarization, _audio, _use_case
 
         try:
             if torch and torch.cuda.is_available():
@@ -104,7 +109,6 @@ def create_app() -> FastAPI:
             # Create adapters via factory
             _transcription, _diarization = create_ml_adapters(config)
             _audio = create_audio_adapter()
-            _infra = create_infra_adapters(config)
 
             # Load ML models
             _transcription.load(config.model_id, device=config.asr_provider)
@@ -192,6 +196,19 @@ def create_app() -> FastAPI:
             except json.JSONDecodeError as e:
                 raise HTTPException(status_code=400, detail=f"Invalid config JSON: {e}")
 
+        # Numeric parameter validation
+        if not (0.0 <= temperature <= 2.0):
+            raise HTTPException(status_code=400, detail="temperature must be between 0.0 and 2.0")
+        if not (0.0 <= min_confidence <= 1.0):
+            raise HTTPException(status_code=400, detail="min_confidence must be between 0.0 and 1.0")
+        if not (0.1 <= paragraph_silence_threshold <= 10.0):
+            raise HTTPException(status_code=400, detail="paragraph_silence_threshold must be between 0.1 and 10.0")
+        for name, val in [("num_speakers", num_speakers), ("min_speakers", min_speakers), ("max_speakers", max_speakers)]:
+            if val is not None and not (1 <= val <= 20):
+                raise HTTPException(status_code=400, detail=f"{name} must be between 1 and 20")
+        if min_speakers is not None and max_speakers is not None and min_speakers > max_speakers:
+            raise HTTPException(status_code=400, detail="min_speakers must be <= max_speakers")
+
         filename = file.filename or "audio"
         logger.info(f"Transcription: {filename}, format={response_format}, diarize={diarize}, engine={config.engine}")
 
@@ -202,8 +219,16 @@ def create_app() -> FastAPI:
             suffix = Path(filename).suffix or ".wav"
             temp_file = temp_dir / f"upload_{os.urandom(8).hex()}{suffix}"
             with open(temp_file, "wb") as f:
-                content = await file.read()
-                f.write(content)
+                total = 0
+                while True:
+                    chunk = await file.read(1024 * 1024)  # 1 MB chunks
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_UPLOAD_BYTES:
+                        temp_file.unlink(missing_ok=True)
+                        raise HTTPException(status_code=413, detail="File exceeds 500 MB limit")
+                    f.write(chunk)
 
             # Resolve include_diarization_in_text default
             use_in_text = include_diarization_in_text if include_diarization_in_text is not None else config.include_diarization_in_text
@@ -258,6 +283,8 @@ def create_app() -> FastAPI:
     @app.post("/v1/audio/entities")
     async def annotate_entities(paragraphs: List[dict] = Body(...)):
         """Annotate paragraph texts with entity counts (lightweight, CPU-only)."""
+        if len(paragraphs) > 500:
+            raise HTTPException(status_code=400, detail="Too many paragraphs (max 500)")
         try:
             annotate_paragraphs_with_entities(paragraphs)
             return [p.get("entity_counts") for p in paragraphs]
@@ -268,6 +295,8 @@ def create_app() -> FastAPI:
     @app.post("/v1/audio/sentiment")
     async def annotate_sentiment(paragraphs: List[dict] = Body(...)):
         """Annotate paragraph texts with sentiment (lightweight, CPU-only)."""
+        if len(paragraphs) > 500:
+            raise HTTPException(status_code=400, detail="Too many paragraphs (max 500)")
         try:
             annotate_paragraphs_with_sentiment(paragraphs)
             return [p.get("sentiment") for p in paragraphs]

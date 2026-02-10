@@ -55,18 +55,15 @@ npm run preview
 curl http://localhost:20301/health
 
 # Basic transcription
-curl -X POST -F "file=@audio.mp3" http://localhost:20301/v1/audio/transcriptions
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3" http://localhost:20301/v1/audio/transcriptions
 
 # With speaker diarization
-curl -X POST \
+curl -X POST -H "Authorization: Bearer $API_KEY" \
   -F "file=@audio.mp3" \
   -F "diarize=true" \
   -F "response_format=verbose_json" \
   http://localhost:20301/v1/audio/transcriptions
-
-# Access from LAN (replace IP)
-curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
-  http://192.168.1.10:20301/v1/audio/transcriptions
 ```
 
 ## Architecture
@@ -89,7 +86,7 @@ curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
 - `diarization/__init__.py` - Pyannote pipeline wrapper for speaker identification
 - `models.py` - Pydantic models for request/response schemas
 - `config.py` - Environment configuration loader
-- `auth.py` - Authentication middleware (LAN bypass + Bearer token validation)
+- `auth.py` - Authentication middleware (Bearer token validation + rate limiting)
 - `torchaudio_compat/` - Pure-Python torchaudio shim (solves ABI compatibility issue)
 
 **Processing Pipeline:**
@@ -136,8 +133,7 @@ curl -X POST -F "file=@audio.mp3" -F "diarize=true" \
 
 **API Key System:**
 - Keys stored in `backend/api-keys.json` (loaded at startup)
-- LAN requests (192.168.x.x, 10.x.x.x, 127.0.0.1) bypass authentication
-- External requests require `Authorization: Bearer {key}` header
+- All `/v1/audio/*` requests require `Authorization: Bearer {key}` header
 - Middleware in `auth.py` validates requests
 
 **Key Schema:**
@@ -302,7 +298,7 @@ See `CURRENT.md` for detailed implementation plan with test strategies and accep
 1. **Never modify torchaudio_compat/ without understanding the ABI issue** - This shim is critical for pyannote compatibility
 2. **Always test diarization after PyTorch/NeMo version changes** - Dependencies are tightly coupled
 3. **Long audio handling uses chunking** - Be aware of 500s chunk boundaries when debugging timestamps
-4. **Authentication has LAN bypass** - Don't require API keys for local network requests
+4. **All API requests require auth** - Every `/v1/audio/*` request needs a Bearer token, including local
 5. **Models are cached in volumes** - First startup downloads ~8GB, subsequent starts are fast
 6. **GPU memory is precious** - Monitor VRAM usage, current peak is ~6GB for transcription + diarization
 7. **The mockup.html file shows the target UI** - Reference this when implementing frontend features

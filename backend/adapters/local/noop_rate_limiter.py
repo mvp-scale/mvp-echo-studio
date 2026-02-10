@@ -9,3 +9,6 @@ class NoOpRateLimiter(RateLimiterPort):
 
     def remaining(self, api_key: str) -> int:
         return 999999
+
+    def reset_time(self, api_key: str) -> float:
+        return 0.0
