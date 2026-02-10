@@ -25,8 +25,17 @@ class NeMoTranscriptionAdapter(TranscriptionPort):
         self._model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_id)
 
         if device == "cuda" and torch.cuda.is_available():
+            # cuDNN auto-tuning: benchmarks convolution algorithms on first run,
+            # then caches the fastest for subsequent calls with same input shapes.
+            torch.backends.cudnn.benchmark = True
+            logger.info("cuDNN benchmark mode enabled")
+
             self._model = self._model.cuda()
-            logger.info(f"Model loaded on GPU: {torch.cuda.get_device_name(0)}")
+
+            # Half-precision inference: halves memory bandwidth, speeds up compute.
+            # RTX 3090 has full fp16/bf16 tensor core support.
+            self._model = self._model.half()
+            logger.info(f"Model loaded on GPU (fp16): {torch.cuda.get_device_name(0)}")
         else:
             logger.warning("CUDA not available, running on CPU")
 
@@ -46,7 +55,7 @@ class NeMoTranscriptionAdapter(TranscriptionPort):
         try:
             audio_duration = self._get_audio_duration(audio_path)
 
-            with torch.no_grad():
+            with torch.inference_mode():
                 output = self._model.transcribe([audio_path], timestamps=True)
 
             if not output:

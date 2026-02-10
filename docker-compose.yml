@@ -36,6 +36,7 @@ services:
       - NEMO_CACHE_DIR=/models/nemo
       - ASR_PROVIDER=${ASR_PROVIDER:-cuda}
       - ORT_ARENA_EXTEND_STRATEGY=kSameAsRequested
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
     deploy:
       resources:
         reservations:

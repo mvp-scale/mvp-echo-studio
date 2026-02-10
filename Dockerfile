@@ -19,6 +19,10 @@ FROM nvcr.io/nvidia/nemo:25.04
 
 ENV PYTHONUNBUFFERED=1
 
+# PyTorch CUDA memory allocator: expandable segments reduce fragmentation
+# and avoid OOM from non-contiguous free blocks.
+ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 # Persist model downloads to the mounted volume
 ENV HF_HOME=/models/huggingface
 ENV TORCH_HOME=/models/torch
