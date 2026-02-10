@@ -339,12 +339,29 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
           )}
         </div>
 
-        {/* Future features */}
+      </div>
+
+      {/* Coming Soon */}
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 pb-1 border-b border-border">
+          Coming Soon
+        </div>
+
         {[
-          { name: "Topic Detection", desc: "Extract most-discussed subjects" },
-          { name: "Summarization", desc: "AI-powered transcript summary" },
+          { name: "Real-time Streaming", desc: "Live transcription via WebSocket" },
+          { name: "Multi-language", desc: "100+ languages (Whisper models)" },
+          { name: "Custom Vocabulary", desc: "Boost domain-specific terms" },
+          { name: "Audio Enhancement", desc: "Reduce background noise" },
+          { name: "Word-level Timestamps", desc: "Finer granularity than segments" },
+          { name: "Translation", desc: "Convert transcript to any language" },
+          { name: "Chapter Detection", desc: "Auto-title sections of long recordings" },
+          { name: "Topic Detection", desc: "Extract recurring themes" },
+          { name: "Summarization", desc: "AI-powered condensed version" },
           { name: "Action Items", desc: "Extract tasks and decisions" },
-          { name: "Key Moments", desc: "Highlight important sections" },
+          { name: "Key Moments", desc: "Auto-highlight important sections" },
+          { name: "Speaker Identification", desc: "Voice-based speaker matching" },
+          { name: "Emotion Detection", desc: "Detect excitement, frustration, confusion" },
+          { name: "Meeting Notes", desc: "Auto-generate structured summary" },
         ].map((feat) => (
           <div key={feat.name} className="py-1.5">
             <div className="flex items-center gap-2.5">
