@@ -122,7 +122,7 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
             />
             <div className="text-[12px] font-semibold">Diarization</div>
           </div>
-          {options.diarize && detectedSpeakers.length > 1 && (
+          {options.diarize && (
             <div className="mt-1.5 pl-[46px] flex items-center gap-2 flex-wrap">
               <label className="flex items-center gap-1 text-[10px] text-gray-400">
                 Min <NumberInput value={options.minSpeakers} onChange={(v) => set("minSpeakers", v)} placeholder="Auto" />
