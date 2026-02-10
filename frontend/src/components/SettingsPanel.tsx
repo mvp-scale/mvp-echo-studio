@@ -175,37 +175,6 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
           )}
         </div>
 
-        {/* Confidence Filter */}
-        <div className="py-1.5">
-          <div className="flex items-center gap-2.5">
-            <Toggle
-              checked={options.minConfidence > 0}
-              onChange={(v) => set("minConfidence", v ? 0.5 : 0)}
-              disabled={disabled}
-            />
-            <div className="text-[12px] font-semibold">Confidence Filter</div>
-          </div>
-          {options.minConfidence > 0 && (
-            <div className="mt-1.5 pl-[46px] flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400">Min</span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={options.minConfidence}
-                onChange={(e) =>
-                  set("minConfidence", parseFloat(e.target.value))
-                }
-                className="flex-1 accent-mvp-blue h-1"
-              />
-              <span className="text-[10px] font-mono text-gray-300 min-w-[28px] text-right">
-                {options.minConfidence.toFixed(2)}
-              </span>
-            </div>
-          )}
-        </div>
-
         {/* Smart Redaction & PII */}
         <div className="py-1.5">
           <div className="flex items-center gap-2.5">
@@ -329,23 +298,6 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
           )}
         </div>
 
-        {/* Topic Detection */}
-        <div className="py-1.5">
-          <div className="flex items-center gap-2.5">
-            <Toggle
-              checked={options.detectTopics}
-              onChange={(v) => set("detectTopics", v)}
-              disabled={disabled}
-            />
-            <div className="flex-1">
-              <div className="text-[12px] font-semibold">Topic Detection</div>
-              <div className="text-[10px] text-gray-500 mt-0.5">
-                Extract most-discussed subjects.
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Sentiment Analysis */}
         <div className="py-1.5">
           <div className="flex items-center gap-2.5">
@@ -389,16 +341,22 @@ export default function SettingsPanel({ options, onChange, disabled, detectedSpe
 
         {/* Future features */}
         {[
-          { name: "Summarization", phase: "Phase 3" },
+          { name: "Topic Detection", desc: "Extract most-discussed subjects" },
+          { name: "Summarization", desc: "AI-powered transcript summary" },
+          { name: "Action Items", desc: "Extract tasks and decisions" },
+          { name: "Key Moments", desc: "Highlight important sections" },
         ].map((feat) => (
           <div key={feat.name} className="py-1.5">
             <div className="flex items-center gap-2.5">
               <Toggle checked={false} onChange={() => {}} disabled />
-              <div className="text-[12px] font-semibold text-gray-400">
-                {feat.name}
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-semibold ml-1.5">
-                  {feat.phase}
-                </span>
+              <div className="flex-1">
+                <div className="text-[12px] font-semibold text-gray-400">
+                  {feat.name}
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-semibold ml-1.5">
+                    Phase 3
+                  </span>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-0.5">{feat.desc}</div>
               </div>
             </div>
           </div>
