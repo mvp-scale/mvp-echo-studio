@@ -46,6 +46,8 @@ export default function App() {
   const [options, setOptions] = useState<TranscriptionOptions>(DEFAULT_OPTIONS);
   const [viewMode, setViewMode] = useState<ViewMode>("para");
   const [leftTab, setLeftTab] = useState<LeftTab>("features");
+  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
+  const [lastRun, setLastRun] = useState<{ audioDuration: number; processingTime: number; fileSize: number } | null>(null);
 
   // Restore text rules + category from localStorage on mount (or load defaults)
   // Storage version: bump to invalidate stale data when defaults change
@@ -191,7 +193,9 @@ export default function App() {
     setSearchQuery("");
 
     try {
+      const t0 = performance.now();
       const result: TranscriptionResponse = await transcribe(file, options);
+      const elapsed = (performance.now() - t0) / 1000;
       setRawSegments(result.segments ?? []);
       setRawParagraphs(result.paragraphs ?? []);
       setStatistics(result.statistics ?? null);
@@ -199,6 +203,8 @@ export default function App() {
       setFullText(result.text);
       setDuration(result.duration ?? 0);
       setState("done");
+      setLastRun({ audioDuration: result.duration ?? 0, processingTime: elapsed, fileSize: file.size });
+      setUsageRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transcription failed");
       setState("error");
@@ -232,7 +238,7 @@ export default function App() {
   const isDone = state === "done" && rawSegments.length > 0;
 
   return (
-    <Layout>
+    <Layout usageRefreshKey={usageRefreshKey} lastRun={lastRun}>
       {/* Upload area - always at top */}
       <div className="border-b border-border bg-gradient-to-br from-[#1a1040] via-surface-0 to-[#101820] px-8 py-6">
         <div className="max-w-[1440px] mx-auto">

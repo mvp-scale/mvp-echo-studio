@@ -1,10 +1,11 @@
 import os
 import json
 import logging
+import time
 from typing import List, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Body
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, FileResponse
 
@@ -138,8 +139,11 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Startup error: {e}")
 
+    _usage = _infra["usage"]
+
     @app.post("/v1/audio/transcriptions")
     async def transcribe_audio(
+        request: Request,
         file: UploadFile = File(...),
         model: str = Form("whisper-1"),
         language: Optional[str] = Form(None),
@@ -259,7 +263,19 @@ def create_app() -> FastAPI:
                 chunk_duration=config.chunk_duration,
             )
 
+            t0 = time.monotonic()
             response, all_segments, full_text = _use_case.execute(req)
+            gpu_seconds = time.monotonic() - t0
+
+            # Log usage for this API key
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                api_key = auth_header[7:].strip()
+                _usage.log(api_key, {
+                    "audio_minutes": (response.duration or 0) / 60.0,
+                    "bytes_uploaded": total,
+                    "gpu_seconds": round(gpu_seconds, 2),
+                })
 
             if response_format == "json":
                 return response.dict()
@@ -279,6 +295,15 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Transcription error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/v1/audio/usage")
+    async def get_usage(request: Request):
+        """Return accumulated usage stats for the authenticated API key."""
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing API key")
+        api_key = auth_header[7:].strip()
+        return _usage.get(api_key)
 
     @app.post("/v1/audio/entities")
     async def annotate_entities(paragraphs: List[dict] = Body(...)):

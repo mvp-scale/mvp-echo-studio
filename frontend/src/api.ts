@@ -1,4 +1,4 @@
-import type { TranscriptionResponse, TranscriptionOptions, HealthResponse, SentimentResult } from "./types";
+import type { TranscriptionResponse, TranscriptionOptions, HealthResponse, SentimentResult, UsageResponse } from "./types";
 
 const BASE = import.meta.env.DEV ? "" : "";
 
@@ -122,4 +122,20 @@ export async function fetchHealth(): Promise<HealthResponse> {
   const res = await fetch(`${BASE}/health`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+export async function fetchUsage(): Promise<UsageResponse | null> {
+  const key = getStoredApiKey();
+  if (!key) return null;
+  try {
+    const res = await fetch(`${BASE}/v1/audio/usage`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.request_count) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }

@@ -241,6 +241,14 @@ export interface HealthResponse {
   diarization_available: boolean;
 }
 
+export interface UsageResponse {
+  request_count: number;
+  total_audio_minutes: number;
+  total_bytes_uploaded: number;
+  total_gpu_seconds: number;
+  last_used: string | null;
+}
+
 export type ExportFormat = "srt" | "vtt" | "txt" | "json";
 
 export type AppState = "idle" | "uploading" | "transcribing" | "done" | "error";

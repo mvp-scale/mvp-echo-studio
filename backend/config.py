@@ -123,7 +123,7 @@ def create_infra_adapters(cfg: Config):
     from adapters.local.sliding_window_rate_limiter import SlidingWindowRateLimiter
     from adapters.local.log_progress import LogProgressAdapter
     from adapters.local.json_key_store import JsonFileKeyStore
-    from adapters.local.noop_usage import NoOpUsageAdapter
+    from adapters.local.json_file_usage import JsonFileUsageTracker
 
     infra = cfg.infra
 
@@ -133,7 +133,7 @@ def create_infra_adapters(cfg: Config):
             "rate_limiter": SlidingWindowRateLimiter(max_requests=10, window_seconds=60),
             "progress": LogProgressAdapter(),
             "key_store": JsonFileKeyStore("/data/api-keys.json"),
-            "usage": NoOpUsageAdapter(),
+            "usage": JsonFileUsageTracker("/models/usage.json"),
         }
     elif infra == "redis":
         # Redis adapters will be implemented in Phase 5
