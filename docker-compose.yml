@@ -1,4 +1,4 @@
-# MVP-Echo Studio: Batch transcription + speaker diarization
+# MVP-Echo Scribe: Batch transcription + speaker diarization
 #
 # Runs alongside the toolbar stack (mvp-stt-docker) on port 20301.
 #

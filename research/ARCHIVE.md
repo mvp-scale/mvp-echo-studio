@@ -1,4 +1,4 @@
-# MVP-Echo Studio - v0.2.0 Archive
+# MVP-Echo Scribe - v0.2.0 Archive
 
 > **Archived**: 2026-02-10
 > **Reason**: v0.2.0 feature work complete. CURRENT.md now tracks v0.3.0 hexagonal architecture refactor.

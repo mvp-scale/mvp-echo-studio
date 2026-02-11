@@ -1,9 +1,9 @@
-# MVP-Echo Studio - Session Context
+# MVP-Echo Scribe - Session Context
 
 ## Current State (2026-02-09)
 
 **Status**: ✅ **v0.2.0 IN PROGRESS** - Core features implemented, iterating on UI polish
-**Location**: `/home/corey/projects/mvp-echo-toolbar/mvp-echo-studio/`
+**Location**: `/home/corey/projects/mvp-echo-scribe/`
 **Container**: `mvp-scribe` running on RTX 3090 (24GB VRAM)
 **Ports**: 8001 (internal), mapped to 20301 externally
 **Mockup**: `mockup.html` - Interactive feature demo with all proposed features
@@ -274,7 +274,7 @@ def log_usage(api_key: str, metadata: dict):
 ```json
 {
   "version": 1,
-  "name": "Echo Studio Text Rules",
+  "name": "Echo Scribe Text Rules",
   "rules": [
     {
       "name": "Remove 'um'",

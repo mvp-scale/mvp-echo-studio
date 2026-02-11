@@ -1,5 +1,5 @@
 #!/bin/bash
-# MVP-Echo Studio entrypoint (Sherpa-ONNX ASR + Pyannote diarization)
+# MVP-Echo Scribe entrypoint (Sherpa-ONNX ASR + Pyannote diarization)
 #
 # Downloads ASR and VAD models from GitHub releases (public, no auth).
 # Pyannote downloads its own diarization models via HuggingFace on first run.
@@ -10,18 +10,18 @@ set -e
 
 MODEL_DIR="${MODEL_ID:-/models/sherpa-onnx}"
 
-echo "[echo-studio] Starting MVP-Echo Studio (Sherpa ASR + Pyannote diarization)..."
+echo "[echo-scribe] Starting MVP-Echo Scribe (Sherpa ASR + Pyannote diarization)..."
 
 # ── GPU check ──
 if command -v nvidia-smi &>/dev/null; then
-    echo "[echo-studio] GPU detected:"
+    echo "[echo-scribe] GPU detected:"
     nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader
 else
-    echo "[echo-studio] WARNING: nvidia-smi not found"
+    echo "[echo-scribe] WARNING: nvidia-smi not found"
 fi
 
 # ── Download models from GitHub releases (no auth required) ──
-echo "[echo-studio] Model directory: ${MODEL_DIR}"
+echo "[echo-scribe] Model directory: ${MODEL_DIR}"
 mkdir -p "${MODEL_DIR}"
 
 # --- ASR: Parakeet TDT 0.6B v2 (int8) ---
@@ -30,34 +30,34 @@ mkdir -p "${MODEL_DIR}"
 ASR_URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2"
 
 if [ -f "${MODEL_DIR}/encoder.int8.onnx" ] && [ -f "${MODEL_DIR}/tokens.txt" ]; then
-    echo "[echo-studio] ASR model already present, skipping download"
+    echo "[echo-scribe] ASR model already present, skipping download"
 else
-    echo "[echo-studio] Downloading ASR model (Parakeet TDT 0.6B v2 int8, ~460MB)..."
+    echo "[echo-scribe] Downloading ASR model (Parakeet TDT 0.6B v2 int8, ~460MB)..."
     curl -fSL "${ASR_URL}" | tar xjf - -C "${MODEL_DIR}" --strip-components=1
-    echo "[echo-studio] ASR model downloaded"
+    echo "[echo-scribe] ASR model downloaded"
 fi
 
 # ── Verify all models ──
-echo "[echo-studio] Verifying models..."
+echo "[echo-scribe] Verifying models..."
 MISSING=0
 for f in encoder.int8.onnx decoder.int8.onnx joiner.int8.onnx tokens.txt; do
     if [ -f "${MODEL_DIR}/${f}" ]; then
         SIZE=$(stat -c%s "${MODEL_DIR}/${f}" 2>/dev/null || echo "?")
-        echo "[echo-studio]   OK: ${f} (${SIZE} bytes)"
+        echo "[echo-scribe]   OK: ${f} (${SIZE} bytes)"
     else
-        echo "[echo-studio]   MISSING: ${f}"
+        echo "[echo-scribe]   MISSING: ${f}"
         MISSING=1
     fi
 done
 
 if [ "$MISSING" -eq 1 ]; then
-    echo "[echo-studio] ERROR: Some models are missing. Cannot start."
+    echo "[echo-scribe] ERROR: Some models are missing. Cannot start."
     exit 1
 fi
 
-echo "[echo-studio] All models verified"
-echo "[echo-studio] Note: Pyannote diarization models will be downloaded from HuggingFace on first use"
+echo "[echo-scribe] All models verified"
+echo "[echo-scribe] Note: Pyannote diarization models will be downloaded from HuggingFace on first use"
 
 # ── Start FastAPI app ──
-echo "[echo-studio] Starting uvicorn on port ${PORT:-8001}..."
+echo "[echo-scribe] Starting uvicorn on port ${PORT:-8001}..."
 exec python3 -m uvicorn main:app --host 0.0.0.0 --port "${PORT:-8001}" --workers 1

@@ -1,4 +1,4 @@
-# MVP-Echo Studio - v0.3.0 Session Context
+# MVP-Echo Scribe - v0.3.0 Session Context
 
 ## Current State (2026-02-10)
 

@@ -2,7 +2,7 @@ import type { TranscriptionResponse, TranscriptionOptions, HealthResponse, Senti
 
 const BASE = import.meta.env.DEV ? "" : "";
 
-const API_KEY_STORAGE_KEY = "echo-studio-api-key";
+const API_KEY_STORAGE_KEY = "echo-scribe-api-key";
 
 export function getStoredApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE_KEY) || "";

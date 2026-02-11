@@ -1,4 +1,4 @@
-# MVP-Echo Studio: Parakeet TDT + Pyannote diarization + React UI
+# MVP-Echo Scribe: Parakeet TDT + Pyannote diarization + React UI
 #
 # Multi-stage build:
 #   Stage 1: Build frontend (Node 20)

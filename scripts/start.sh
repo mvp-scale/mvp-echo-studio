@@ -41,7 +41,7 @@ docker compose down 2>/dev/null || true
 
 # Remove old image to force clean build
 echo "[2/3] Removing old image..."
-docker rmi mvp-echo-studio-mvp-scribe 2>/dev/null || true
+docker rmi mvp-echo-scribe-mvp-scribe 2>/dev/null || true
 
 # Build and start
 echo "[3/3] Building and starting..."

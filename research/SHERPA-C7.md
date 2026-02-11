@@ -1,6 +1,6 @@
 # sherpa-onnx
 
-## MVP-Echo Studio Alignment Review (2026-02-10)
+## MVP-Echo Scribe Alignment Review (2026-02-10)
 
 Comparison of our Sherpa-ONNX implementation against the Context7 reference documentation.
 Validated during Docker rebuild after resolving model download failures and API signature mismatches.

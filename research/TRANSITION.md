@@ -127,7 +127,7 @@ Total: ~350MB (vs NeMo's ~8GB)
 
 **Expected logs:**
 ```
-[echo-studio] Starting MVP-Echo Studio (Sherpa-ONNX native diarization)
+[echo-scribe] Starting MVP-Echo Scribe (Sherpa-ONNX native diarization)
 Sherpa all-in-one diarization ready
 Engine: sherpa
 ```

@@ -25,7 +25,7 @@ NeMo fp16 is the winner. 73% VRAM reduction (15GB to 4GB) opens deployment to 8G
 # Prerequisites: NVIDIA GPU (8GB+), Docker, nvidia-container-toolkit
 # HuggingFace token required for Pyannote gated model
 
-git clone <repo-url> && cd mvp-echo-studio
+git clone <repo-url> && cd mvp-echo-scribe
 echo "HF_TOKEN=hf_your_token_here" > .env
 ./scripts/start.sh nemo
 
@@ -270,7 +270,7 @@ Auth: All `/v1/audio/*` requests require `Authorization: Bearer <key>`.
 ## Project Structure
 
 ```
-mvp-echo-studio/
+mvp-echo-scribe/
 ├── backend/
 │   ├── domain/                       # Framework-agnostic types
 │   ├── ports/                        # Abstract interfaces

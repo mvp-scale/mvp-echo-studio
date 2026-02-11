@@ -1,4 +1,4 @@
-# Git Setup Instructions - MVP-Echo Studio
+# Git Setup Instructions - MVP-Echo Scribe
 
 This is a **NEW** standalone repository. It was extracted from the `mvp-echo-toolbar` monorepo to be its own project.
 
@@ -30,7 +30,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEwdSQSWI/mIxFka38J35K0xhFlSPDTzYtEqLD3meDNA
 Go to: **https://github.com/organizations/mvp-scale/repositories/new**
 
 Settings:
-- **Repository name**: `mvp-echo-studio`
+- **Repository name**: `mvp-echo-scribe`
 - **Description**: `GPU-accelerated transcription service with speaker diarization (NeMo Parakeet + Pyannote)`
 - **Visibility**: Public (or Private if preferred)
 - **DO NOT** initialize with README, .gitignore, or license (we have these already)
@@ -39,7 +39,7 @@ Settings:
 ### 3. Initialize Local Git
 
 ```bash
-cd /home/corey/projects/mvp-echo-studio
+cd /home/corey/projects/mvp-echo-scribe
 
 # Verify we're in clean directory (no .git)
 ls -la | grep .git
@@ -106,7 +106,7 @@ EOF
 git add .
 
 # Initial commit
-git commit -m "Initial commit: MVP-Echo Studio transcription service
+git commit -m "Initial commit: MVP-Echo Scribe transcription service
 
 - GPU transcription with NVIDIA NeMo Parakeet TDT 0.6B
 - Speaker diarization with Pyannote 3.1
@@ -122,7 +122,7 @@ git commit -m "Initial commit: MVP-Echo Studio transcription service
 
 ```bash
 # Add SSH remote (mvp-scale org)
-git remote add origin git@github.com:mvp-scale/mvp-echo-studio.git
+git remote add origin git@github.com:mvp-scale/mvp-echo-scribe.git
 
 # Push to main
 git push -u origin main
@@ -189,7 +189,7 @@ chmod 600 ~/.ssh/config
 
 Then use:
 ```bash
-git remote add origin git@github.com-mvpscale:mvp-scale/mvp-echo-studio.git
+git remote add origin git@github.com-mvpscale:mvp-scale/mvp-echo-scribe.git
 ```
 
 ## Verify Setup
@@ -202,8 +202,8 @@ ssh -T git@github.com
 # Check remote
 git remote -v
 # Expected:
-# origin  git@github.com:mvp-scale/mvp-echo-studio.git (fetch)
-# origin  git@github.com:mvp-scale/mvp-echo-studio.git (push)
+# origin  git@github.com:mvp-scale/mvp-echo-scribe.git (fetch)
+# origin  git@github.com:mvp-scale/mvp-echo-scribe.git (push)
 
 # Check branch
 git branch -a
@@ -258,7 +258,7 @@ Before pushing:
 
 After first successful push:
 
-1. Verify on GitHub: https://github.com/mvp-scale/mvp-echo-studio
+1. Verify on GitHub: https://github.com/mvp-scale/mvp-echo-scribe
 2. Check files rendered correctly
 3. Add repo description and topics (GPU, transcription, NeMo, Pyannote, FastAPI, React)
 4. Consider adding GitHub Actions for Docker builds (optional)
@@ -267,7 +267,7 @@ After first successful push:
 ## Moving Forward
 
 This is now your baseline. All future work happens in this repo:
-- `/home/corey/projects/mvp-echo-studio` (local)
-- `https://github.com/mvp-scale/mvp-echo-studio` (remote)
+- `/home/corey/projects/mvp-echo-scribe` (local)
+- `https://github.com/mvp-scale/mvp-echo-scribe` (remote)
 
-The old nested location (`mvp-echo-toolbar/mvp-echo-studio/`) can be removed once you've verified the new repo works.
+The old nested location (`mvp-echo-toolbar/mvp-echo-scribe/`) can be removed once you've verified the new repo works.

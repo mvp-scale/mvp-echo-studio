@@ -49,12 +49,12 @@ export default function App() {
 
   // Restore text rules + category from localStorage on mount (or load defaults)
   // Storage version: bump to invalidate stale data when defaults change
-  const STORAGE_KEY = "echo-studio-text-rules-v3";
-  const CATEGORY_KEY = "echo-studio-text-rule-category";
+  const STORAGE_KEY = "echo-scribe-text-rules-v3";
+  const CATEGORY_KEY = "echo-scribe-text-rule-category";
   useEffect(() => {
     // Clear stale keys from previous versions
-    localStorage.removeItem("echo-studio-text-rules");
-    localStorage.removeItem("echo-studio-text-rules-v2");
+    localStorage.removeItem("echo-scribe-text-rules");
+    localStorage.removeItem("echo-scribe-text-rules-v2");
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -91,7 +91,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "echo-studio-config.json";
+    a.download = "echo-scribe-config.json";
     a.click();
     URL.revokeObjectURL(url);
   }, [options]);

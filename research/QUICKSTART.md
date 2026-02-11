@@ -1,4 +1,4 @@
-# Quick Start - MVP-Echo Studio
+# Quick Start - MVP-Echo Scribe
 
 **Goal**: Get transcription working in 5 minutes.
 
@@ -28,7 +28,7 @@ docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
 ## 3. Configure
 
 ```bash
-cd mvp-echo-studio
+cd mvp-echo-scribe
 
 # Create .env file
 echo "HF_TOKEN=hf_your_actual_token_here" > .env
