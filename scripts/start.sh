@@ -38,6 +38,7 @@ echo ""
 # Stop and remove container
 echo "[1/3] Stopping container..."
 docker compose down 2>/dev/null || true
+docker rm -f mvp-scribe 2>/dev/null || true
 
 # Remove old image to force clean build
 echo "[2/3] Removing old image..."
