@@ -215,6 +215,18 @@ export default function App() {
     setSeekTo(time);
   }, []);
 
+  const handleRenameSpeaker = useCallback((originalSpeaker: string, newName: string) => {
+    setOptions((prev) => {
+      const labels = { ...prev.speakerLabels };
+      if (newName) {
+        labels[originalSpeaker] = newName;
+      } else {
+        delete labels[originalSpeaker];
+      }
+      return { ...prev, speakerLabels: labels };
+    });
+  }, []);
+
   const handleRemoveFile = useCallback(() => {
     setFile(null);
     setState("idle");
@@ -555,6 +567,7 @@ export default function App() {
                     currentTime={currentTime}
                     searchQuery={searchQuery}
                     onClickTimestamp={handleClickTimestamp}
+                    onRenameSpeaker={handleRenameSpeaker}
                   />
                 ) : (
                   <ParagraphView
@@ -566,6 +579,7 @@ export default function App() {
                     visibleEntityTypes={options.visibleEntityTypes}
                     showSentiment={options.detectSentiment}
                     visibleSentimentTypes={options.visibleSentimentTypes}
+                    onRenameSpeaker={handleRenameSpeaker}
                   />
                 )}
               </div>

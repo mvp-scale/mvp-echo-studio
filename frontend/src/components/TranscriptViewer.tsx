@@ -7,6 +7,7 @@ interface Props {
   currentTime?: number;
   searchQuery?: string;
   onClickTimestamp?: (time: number) => void;
+  onRenameSpeaker?: (originalSpeaker: string, newName: string) => void;
 }
 
 export default function TranscriptViewer({
@@ -14,6 +15,7 @@ export default function TranscriptViewer({
   currentTime = 0,
   searchQuery,
   onClickTimestamp,
+  onRenameSpeaker,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
@@ -63,6 +65,7 @@ export default function TranscriptViewer({
             isActive={seg.id === segments[activeIndex]?.id}
             searchQuery={searchQuery}
             onClickTimestamp={onClickTimestamp}
+            onRenameSpeaker={onRenameSpeaker}
           />
         </div>
       ))}
