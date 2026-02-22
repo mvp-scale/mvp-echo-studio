@@ -1,0 +1,7 @@
+{
+  "input": {
+    "audio_url": "https://github.com/openai/whisper/raw/main/tests/jfk.flac",
+    "diarize": true,
+    "response_format": "verbose_json"
+  }
+}
