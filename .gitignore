@@ -65,3 +65,4 @@ models/
 phone_files/
 
 sherpa_onnx_models/
+.aoa
