@@ -5,8 +5,8 @@
  * polls for completion, and returns the transcript. The frontend doesn't need
  * any code changes.
  *
- * For files >7MB, stores the audio in KV temporarily and passes a download URL
- * to RunPod instead of base64 (RunPod has a 10MB payload limit).
+ * Audio files are stored temporarily in R2 and RunPod downloads them via URL.
+ * R2 lifecycle rule auto-deletes files after 1 day.
  *
  * Secrets (set via `wrangler secret put`):
  *   RUNPOD_API_KEY  — your RunPod API key
@@ -19,11 +19,8 @@ export interface Env {
 	RUNPOD_ENDPOINT_ID: string;
 	API_KEYS: string; // comma-separated
 	PAGES_URL: string; // e.g. https://echo-scribe.pages.dev
-	TEMP_FILES: KVNamespace; // temporary audio file storage
+	UPLOADS: R2Bucket; // temp audio file storage
 }
-
-const MAX_BASE64_SIZE = 7 * 1024 * 1024; // 7MB — files larger than this use KV + URL
-const KV_TTL_SECONDS = 300; // 5 minutes — auto-expire temp files
 
 // ---------------------------------------------------------------------------
 // Entry point
@@ -104,11 +101,19 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 		return jsonResponse({ detail: "Missing 'file' field" }, 400);
 	}
 
-	// 3. Read file bytes
+	// 3. Store audio in R2, pass URL to RunPod
+	const fileKey = crypto.randomUUID();
 	const arrayBuffer = await file.arrayBuffer();
+	await env.UPLOADS.put(fileKey, arrayBuffer, {
+		httpMetadata: { contentType: file.type || "application/octet-stream" },
+	});
+	const workerUrl = new URL(request.url).origin;
+	const audioUrl = `${workerUrl}/tmp/${fileKey}`;
+	console.log(`Stored ${file.name} (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB) in R2: ${fileKey}`);
 
 	// 4. Build RunPod input (map form fields to handler params)
 	const input: Record<string, any> = {
+		audio_url: audioUrl,
 		filename: file.name,
 		response_format: formStr(form, "response_format", "verbose_json"),
 		diarize: formBool(form, "diarize", true),
@@ -121,19 +126,6 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 		detect_topics: formBool(form, "detect_topics", false),
 		detect_sentiment: formBool(form, "detect_sentiment", false),
 	};
-
-	// Small files: inline base64. Large files: store in KV and pass URL.
-	if (arrayBuffer.byteLength <= MAX_BASE64_SIZE) {
-		input.audio_base64 = arrayBufferToBase64(arrayBuffer);
-	} else {
-		const fileKey = crypto.randomUUID();
-		await env.TEMP_FILES.put(fileKey, arrayBuffer, {
-			expirationTtl: KV_TTL_SECONDS,
-		});
-		const workerUrl = new URL(request.url).origin;
-		input.audio_url = `${workerUrl}/tmp/${fileKey}`;
-		console.log(`Large file (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB) stored in KV: ${fileKey}`);
-	}
 
 	// Optional fields (only include if present)
 	const optStr = (key: string) => { const v = form.get(key); if (v) input[key] = String(v); };
@@ -193,8 +185,9 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 		const status = statusData.status;
 
 		if (status === "COMPLETED") {
+			// Clean up R2 file immediately (don't wait for lifecycle)
+			await env.UPLOADS.delete(fileKey);
 			const output = statusData.output;
-			// If the handler returned an error dict
 			if (output && output.error) {
 				return jsonResponse({ detail: output.error }, 500);
 			}
@@ -202,6 +195,7 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 		}
 
 		if (status === "FAILED") {
+			await env.UPLOADS.delete(fileKey);
 			const errMsg = statusData.error || "RunPod job failed";
 			console.error("RunPod job failed:", errMsg);
 			return jsonResponse({ detail: errMsg }, 500);
@@ -210,6 +204,7 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 		// IN_QUEUE or IN_PROGRESS — keep polling
 	}
 
+	await env.UPLOADS.delete(fileKey);
 	return jsonResponse({ detail: "Transcription timed out" }, 504);
 }
 
@@ -219,14 +214,17 @@ async function handleTranscription(request: Request, env: Env): Promise<Response
 
 async function serveTempFile(path: string, env: Env): Promise<Response> {
 	const key = path.replace("/tmp/", "");
-	const data = await env.TEMP_FILES.get(key, "arrayBuffer");
+	const object = await env.UPLOADS.get(key);
 
-	if (!data) {
+	if (!object) {
 		return new Response("Not found or expired", { status: 404 });
 	}
 
-	return new Response(data, {
-		headers: { "Content-Type": "application/octet-stream" },
+	return new Response(object.body, {
+		headers: {
+			"Content-Type": object.httpMetadata?.contentType || "application/octet-stream",
+			"Content-Length": String(object.size),
+		},
 	});
 }
 
@@ -253,17 +251,6 @@ function validateAuth(request: Request, env: Env): Response | null {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-	const bytes = new Uint8Array(buffer);
-	const CHUNK_SIZE = 0x8000; // 32KB — avoids max arguments limit
-	let binary = "";
-	for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-		const chunk = bytes.subarray(i, i + CHUNK_SIZE);
-		binary += String.fromCharCode(...chunk);
-	}
-	return btoa(binary);
-}
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));

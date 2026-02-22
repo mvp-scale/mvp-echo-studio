@@ -9,9 +9,9 @@ compatibility_date = "2024-12-01"
 [vars]
 PAGES_URL = "https://echo-scribe.pages.dev"
 
-[[kv_namespaces]]
-binding = "TEMP_FILES"
-id = "1df392169c0a4cf893757d41e29a2de8"
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "echo-scribe-uploads"
 
 # Secrets (set via CLI, NOT here):
 #   wrangler secret put RUNPOD_API_KEY
