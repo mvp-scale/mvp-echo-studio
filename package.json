@@ -1,1 +1,5 @@
-{}
+{
+  "dependencies": {
+    "@mvpscale/aoa": "^0.1.4"
+  }
+}

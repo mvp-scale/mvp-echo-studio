@@ -1,0 +1,25 @@
+name = "echo-scribe-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Paid plan required — free plan has 10ms CPU limit which is too low.
+# Paid plan gives 30s CPU time, unlimited wall clock (for polling RunPod).
+# usage_model = "standard"
+
+[vars]
+PAGES_URL = "https://echo-scribe.pages.dev"
+
+[[kv_namespaces]]
+binding = "TEMP_FILES"
+id = "1df392169c0a4cf893757d41e29a2de8"
+
+# Secrets (set via CLI, NOT here):
+#   wrangler secret put RUNPOD_API_KEY
+#   wrangler secret put RUNPOD_ENDPOINT_ID
+#   wrangler secret put API_KEYS
+
+# Optional: bind to a custom domain instead of *.workers.dev
+# [routes]
+# routes = [
+#   { pattern = "scribe-runpod.mvp-scale.com/*", zone_name = "mvp-scale.com" }
+# ]

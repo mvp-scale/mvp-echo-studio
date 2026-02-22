@@ -67,7 +67,9 @@ def _fetch_audio(job_input: dict, job_dir: str) -> tuple[str, str]:
         filename = os.path.basename(parsed.path) or "audio.wav"
         dest = os.path.join(job_dir, filename)
         logger.info(f"Downloading {url}")
-        urllib.request.urlretrieve(url, dest)
+        req = urllib.request.Request(url, headers={"User-Agent": "EchoScribe/1.0"})
+        with urllib.request.urlopen(req) as resp, open(dest, "wb") as f:
+            f.write(resp.read())
         return dest, filename
 
     if "audio_base64" in job_input:
